@@ -1,0 +1,104 @@
+#!/bin/bash
+# This scripts reads the MrHTTPD configuration file mrhttpd.conf
+# and generates the C include config.h
+#
+# MrHTTPD v2.2.0
+# Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
+
+. ./mrhttpd.conf
+. ./checkconfig
+
+echo
+echo "MrHTTPD configuration"
+echo "====================="
+echo
+echo "System user:           $_SYSTEM_USER"
+echo "Server root:           $_SERVER_ROOT"
+echo "Server port:           $_SERVER_PORT"
+echo "Server name:           $_SERVER_NAME"
+echo "Server documents:      $_SERVER_DOCS"
+echo "Binary directory:      $_BIN_DIR"
+echo "Documents directory:   $_DOC_DIR"
+echo "URL path for CGI:      $_CGI_URL"
+echo "CGI script directory:  $_CGI_DIR"
+echo "Default index name:    $_DEFAULT_INDEX"
+echo "System user:           $_SYSTEM_USER"
+echo "Pragma:                $_PRAGMA"
+echo "Log level:             $_LOG_LEVEL"
+echo "Log file:              $_LOG_FILE"
+echo "External file command: $_EXT_FILE_CMD"
+echo "Sendfile option:       $_SENDFILE"
+echo "Query string hack:     $_QUERY_HACK"
+echo 
+
+if [ -n "$ERROR" ]; then
+  echo "ERROR: There are fatal errors in the configuration file."
+  echo "NO include has been generated."
+  echo "Please correct the errors and repeat this script."
+  echo
+  exit 1
+fi
+
+if [ -n "$WARNING" ]; then
+  echo "WARNING: There are entries missing in the configuration file."
+  echo "A best guess has been made for the missing entries."
+  echo "Please review the configuration and repeat this step if necessary."
+  echo
+fi
+
+rm config.h &>/dev/null
+
+cat > config.h << EOF
+/*
+
+This include has been generated automatically. DO NOT CHANGE MANUALLY.
+Instead, change the master configuration file mrhttpd.conf and run configure.
+
+MrHTTPD v2.2.0
+Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
+
+*/
+
+EOF
+
+if [ -n "$SYSTEM_USER" ]; then
+  echo '#define SYSTEM_USER     "'$SYSTEM_USER'"' >>config.h
+fi
+if [ -n "$SERVER_ROOT" ]; then
+  echo '#define SERVER_ROOT     "'$SERVER_ROOT'"' >>config.h
+fi
+echo '#define SERVER_PORT     '$SERVER_PORT >>config.h
+echo '#define SERVER_PORT_STR "'$SERVER_PORT'"' >>config.h
+echo '#define SERVER_NAME     "'$SERVER_NAME'"' >>config.h
+if [ -n "$SERVER_DOCS" ]; then
+  echo '#define SERVER_DOCS     "'$SERVER_DOCS'"' >>config.h
+fi
+echo '#define BIN_DIR         "'$BIN_DIR'"' >>config.h
+echo '#define DOC_DIR         "'$DOC_DIR'"' >>config.h
+if [ -n "$CGI_URL" ]; then
+  echo '#define CGI_URL         "'$CGI_URL'"' >>config.h
+  echo '#define CGI_DIR         "'$CGI_DIR'"' >>config.h
+fi
+if [ -n "$DEFAULT_INDEX" ]; then
+  echo '#define DEFAULT_INDEX   "'$DEFAULT_INDEX'"' >>config.h
+fi
+if [ -n "$PRAGMA" ]; then
+  echo '#define PRAGMA          "'$PRAGMA'"' >>config.h
+fi
+echo '#define LOG_LEVEL       '$LOG_LEVEL >>config.h
+if [ -n "$LOG_FILE" ]; then
+  echo '#define LOG_FILE        "'$LOG_FILE'"' >>config.h
+fi
+if [ -n "$EXT_FILE_CMD" ]; then
+  echo '#define EXT_FILE_CMD    "'$EXT_FILE_CMD'"' >>config.h
+fi
+if [ -n "$SENDFILE" ]; then
+  echo '#define SENDFILE        '$SENDFILE >>config.h
+fi
+if [ -n "$QUERY_HACK" ]; then
+  echo '#define QUERY_HACK      "'$QUERY_HACK'"' >>config.h
+fi
+echo >>config.h
+
+echo "Configuration complete."
+echo

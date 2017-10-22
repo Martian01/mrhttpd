@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# Instructions: 
+# Set this file to executable and copy it into the cgi-bin directory
+# Remove prior to productive use.
+#
+# End of HTTP header:
+#
+echo "Content-Type: text/plain"
+echo
+#
+# HTTP content:
+#
+echo $0 $* 
+echo
+cat $0
+echo
+ps -l
+echo
+env
+echo
+ls -la

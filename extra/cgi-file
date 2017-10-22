@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# Instructions: 
+# Set this file to executable and copy it into the cgi-bin directory
+# Remove prior to productive use.
+#
+FILENAME=${QUERY_STRING}
+if [ -r $FILENAME ] ; then
+  echo -n "Content-Type: "
+  file --mime-type --brief $FILENAME
+  echo -n "Content-Length: "
+  ls -1l $FILENAME | cut -f 5 -d ' ' -s
+  echo
+  cat $FILENAME
+else
+  echo "Content-Length: 0"
+  echo
+fi

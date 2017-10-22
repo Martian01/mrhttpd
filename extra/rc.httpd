@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# Start the web server
+#
+
+case "$1" in
+   'start')
+      /usr/local/sbin/mrhttpd
+      ;;
+   'stop')
+      killall -2 mrhttpd
+      ;;
+   'restart')
+      killall -2 mrhttpd
+      sleep 1
+      /usr/local/sbin/mrhttpd
+      ;;
+   *)
+      echo "usage: $0 start|stop|restart"
+esac

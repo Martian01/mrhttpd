@@ -1,0 +1,123 @@
+#!/bin/bash
+# This scripts checks the MrHTTPD configuration and generates defaults
+#
+# MrHTTPD v2.2.0
+# Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
+
+if [ -z "$SYSTEM_USER" ]; then
+  _SYSTEM_USER="missing, user switch disabled"
+  WARNING=yes
+else
+  _SYSTEM_USER=$SYSTEM_USER
+fi
+if [ -z "$SERVER_ROOT" ]; then
+  _SERVER_ROOT="missing, chroot function disabled"
+  WARNING=yes
+else
+  _SERVER_ROOT=$SERVER_ROOT
+fi
+if [ -z "$SERVER_PORT" ]; then
+  _SERVER_PORT="missing, default: 80"
+  SERVER_PORT=80
+  WARNING=yes
+else
+  _SERVER_PORT=$SERVER_PORT
+fi
+if [ -z "$SERVER_NAME" ]; then
+  _SERVER_NAME="missing, default: $(hostname)"
+  SERVER_NAME=$(hostname)
+  WARNING=yes
+else
+  _SERVER_NAME=$SERVER_NAME
+fi
+if [ -z "$SERVER_DOCS" ]; then
+  _SERVER_DOCS="missing, HTML error replies disabled"
+  WARNING=yes
+else
+  _SERVER_DOCS=$SERVER_DOCS
+fi
+if [ -z "$BIN_DIR" ]; then
+  if [ -d /usr/local/sbin ]; then
+    _BIN_DIR="missing, default: /usr/local/sbin"
+    BIN_DIR=/usr/local/sbin
+    WARNING=yes
+  else
+    _BIN_DIR="missing, fatal"
+    ERROR=yes
+  fi
+else
+  _BIN_DIR=$BIN_DIR
+fi
+if [ -z "$DOC_DIR" ]; then
+  _DOC_DIR="missing, fatal"
+  ERROR=yes
+else
+  _DOC_DIR=$DOC_DIR
+fi
+if [ -z "$CGI_URL" ]; then
+  _CGI_URL="missing, CGI disabled"
+  WARNING=yes
+else
+  _CGI_URL=$CGI_URL
+fi
+if [ -z "$CGI_DIR" ]; then
+  if [ -z "$CGI_URL" ]; then
+    _CGI_DIR="missing, OK"
+    WARNING=yes
+  else
+    _CGI_DIR="missing, fatal"
+    ERROR=yes
+  fi
+else
+  _CGI_DIR=$CGI_DIR
+fi
+if [ -z "$DEFAULT_INDEX" ]; then
+  _DEFAULT_INDEX="missing, function disabled"
+  WARNING=yes
+else
+  _DEFAULT_INDEX=$DEFAULT_INDEX
+fi
+if [ -z "$PRAGMA" ]; then
+  _PRAGMA="missing, OK"
+fi
+if [ -z "$LOG_LEVEL" ]; then
+  _LOG_LEVEL="missing, default: 0"
+  LOG_LEVEL=0
+  WARNING=yes
+else
+  _LOG_LEVEL=$LOG_LEVEL
+fi
+if [ -z "$LOG_FILE" ]; then
+  if [ "$LOG_LEVEL" != "0" ]; then
+    _LOG_FILE="missing"
+    ERROR=yes
+  else
+    _LOG_FILE="missing, OK"
+    WARNING=yes
+  fi
+else
+  _LOG_FILE=$LOG_FILE
+fi
+if [ -z "$EXT_FILE_CMD" ]; then
+  _EXT_FILE_CMD="missing, function disabled"
+  WARNING=yes
+else
+  _EXT_FILE_CMD=$EXT_FILE_CMD
+fi
+if [ -z "$SENDFILE" ]; then
+  OS=$(uname) 2> /dev/null
+  if [ "$OS" = "Linux" ]; then
+    SENDFILE=1
+  else
+    SENDFILE=0
+  fi
+  _SENDFILE="missing, set to: $SENDFILE"
+  WARNING=yes
+else
+  _SENDFILE=$SENDFILE
+fi
+if [ -z "$QUERY_HACK" ]; then
+  _QUERY_HACK="missing, OK"
+else
+  _QUERY_HACK=$QUERY_HACK
+fi

@@ -1,0 +1,6 @@
+#!/bin/bash
+/usr/lib64/java/bin/java -cp /opt/saxon/saxon9he.jar net.sf.saxon.Transform -t -s:README.xml -xsl:/opt/docbook-xsl-1.76.1/html/docbook.xsl -o:README.html
+/usr/bin/lynx -dump README.html > README.txt
+/usr/lib64/java/bin/java -cp /opt/saxon/saxon9he.jar net.sf.saxon.Transform -t -s:README.xml -xsl:/opt/docbook-xsl-1.76.1/fo/docbook.xsl -o:README.fo
+/opt/fop/fop -fo README.fo -pdf README.fo.pdf
+/usr/bin/docbook2pdf README.xml
