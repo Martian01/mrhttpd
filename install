@@ -3,7 +3,7 @@
 # This scripts does a basic installation of MrHTTPD.
 # You still need to check file locations and permissions for sanity.
 #
-# MrHTTPD v2.2.0
+# MrHTTPD v2.3.0
 # Copyright c 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 if [[ ! "$(id -u)" = "0" ]] ; then

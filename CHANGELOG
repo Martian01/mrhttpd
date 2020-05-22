@@ -66,7 +66,7 @@ Option for mechanism of sending files (user space or kernel routine)
 Option for processing of query string
 Full portability (untested)
 
-MrHTTPD v2.2.0
+MrHTTPD v2.3.0
 ==============
 released 2011-12-06
 Maintenance release 

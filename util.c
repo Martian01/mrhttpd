@@ -1,6 +1,6 @@
 /*
 
-MrHTTPD v2.2.0
+MrHTTPD v2.3.0
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or

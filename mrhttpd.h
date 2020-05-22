@@ -1,6 +1,6 @@
 /*
 
-MrHTTPD v2.2.0
+MrHTTPD v2.3.0
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -46,7 +46,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "config.h"
 
-#define SERVER_SOFTWARE   "MrHTTPD/2.2.0"
+#define SERVER_SOFTWARE   "MrHTTPD/2.3.0"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"

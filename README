@@ -170,7 +170,7 @@ Installation
    SERVER_NAME
           defines the name of the server in the sense of the host name.
           This is different from the "Server" attribute in the HTTP header
-          which is hardcoded to "MrHTTPD/2.2.0".
+          which is hardcoded to "MrHTTPD/2.3.0".
 
    SERVER_DOCS
           defines the root directory for internal files. Internal files
