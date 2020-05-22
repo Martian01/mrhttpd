@@ -34,23 +34,19 @@ FILE *logfile;
 
 pthread_mutex_t logfile_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void Log_open(const int socket) {
+int Log_open(const int socket) {
 	logfile = fopen(LOG_FILE, "at");
-	if(logfile == NULL) {
-		perror("log");
-		syslog(LOG_CRIT, "Could not open log file, exiting\n");
-		closelog();
-		exit(1);
-	}
-	Log(socket,
-		"Server started. Port: " SERVER_PORT_STR "."
-		#ifdef SYSTEM_USER
-		" User: " SYSTEM_USER "."
-		#endif
-		#ifdef SERVER_ROOT
-		" Server root: " SERVER_ROOT "."
-		#endif
-		);
+	if (logfile != NULL) {
+		Log(socket,
+			"Server started. Port: " SERVER_PORT_STR "."
+			#ifdef SYSTEM_USER
+			" User: " SYSTEM_USER "."
+			#endif
+			#ifdef SERVER_ROOT
+			" Server root: " SERVER_ROOT "."
+			#endif
+			);
+	return logfile != NULL;
 }
 
 void Log_close(const int socket) {

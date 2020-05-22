@@ -33,13 +33,11 @@ int main(void)
 	struct passwd *pw;
 	pthread_t thread_id;
 
-	openlog("mrhttpd", 0, LOG_DAEMON);
+	//openlog("mrhttpd", 0, LOG_DAEMON);
 
 	// Obtain master listen socket
 	if ((master_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		perror("socket");
-		syslog(LOG_CRIT, "Could not create a socket, exiting\n");
-		closelog();
+		puts("Could not create a socket, exiting");
 		exit(1);
 	}
 
@@ -50,9 +48,7 @@ int main(void)
 	#if 0
 	// Make socket non-blocking
 	if (set_nonblocking(master_fd) < 0) {
-		perror("fcntl");
-		syslog(LOG_CRIT, "Could not make socket nonblocking, exiting\n");
-		closelog();
+		puts("Could not make socket nonblocking, exiting");
 		exit(1);
 	}
 	#endif
@@ -63,16 +59,12 @@ int main(void)
 	memset(&(local_addr.sin_zero), 0, sizeof(local_addr.sin_zero));
 
 	if (bind(master_fd, (struct sockaddr *)&local_addr, sizeof(struct sockaddr)) < 0) {
-		perror("bind");
-		syslog(LOG_CRIT, "Could not bind to port, exiting\n");
-		closelog();
+		puts("Could not bind to port, exiting");
 		exit(1);
 	}
 
 	if (listen(master_fd, LISTEN_QUEUE_LENGTH) < 0) {
-		perror("listen");
-		syslog(LOG_CRIT, "Could not listen on port, exiting\n");
-		closelog();
+		puts("Could not listen on port, exiting");
 		exit(1);
 	}
 
@@ -89,9 +81,7 @@ int main(void)
 	// Save the user data before the chroot call
 	pw = getpwnam(SYSTEM_USER);
 	if (pw == NULL) {
-		perror("getpwnam");
-		syslog(LOG_CRIT, "Could not find system user, exiting\n");
-		closelog();
+		puts("Could not find system user, exiting");
 		exit(1);
 	}
 	#endif
@@ -99,41 +89,38 @@ int main(void)
 	#ifdef SERVER_ROOT
 	// Change directory prior to chroot
 	if (chdir(SERVER_ROOT) != 0) {
-		perror("chdir");
-		syslog(LOG_CRIT, "Could not change directory, exiting\n");
-		closelog();
+		puts("Could not change directory, exiting");
 		exit(1);
 	}
 
 	// Change root directory
  	if (chroot(SERVER_ROOT) != 0) {
-		perror("chroot");
-		syslog(LOG_CRIT, "Could not change root directory, exiting\n");
-		closelog();
+		puts("Could not change root directory, exiting");
 		exit(1);
 	}
 	#endif
 
+	#if DETACH == 1
 	// Drop into background
 	rc = fork();
 	if (rc != 0) {
 		// Parent process continues here
 		if (rc == -1) {
-			perror("fork");
-			syslog(LOG_CRIT, "Could not fork into background, exiting\n");
-			closelog();
+			puts("Could not fork into background, exiting");
 			exit(1);
 		}
-		closelog();
 		exit(0);
 	}
-	
 	// Child process continues here
+	#endif
+	
 	#if (LOG_LEVEL > 0) || (DEBUG > 0)
-	Log_open(master_fd);
+	if (!Log_open(master_fd)) {
+		puts("Could not open log file, exiting");
+		exit(1);
+	}
 	#endif
 
-	closelog();
 	fclose(stderr);
 	fclose(stdin);
 

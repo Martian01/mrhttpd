@@ -116,6 +116,13 @@ if [ -z "$SENDFILE" ]; then
 else
   _SENDFILE=$SENDFILE
 fi
+if [ -z "$DETACH" ]; then
+  _DETACH="missing, default: 1"
+  DETACH=1
+  WARNING=yes
+else
+  _DETACH=$DETACH
+fi
 if [ -z "$QUERY_HACK" ]; then
   _QUERY_HACK="missing, OK"
 else

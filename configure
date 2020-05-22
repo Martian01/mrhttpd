@@ -28,6 +28,7 @@ echo "Log level:             $_LOG_LEVEL"
 echo "Log file:              $_LOG_FILE"
 echo "External file command: $_EXT_FILE_CMD"
 echo "Sendfile option:       $_SENDFILE"
+echo "Detach option:         $_DETACH"
 echo "Query string hack:     $_QUERY_HACK"
 echo 
 
@@ -94,6 +95,9 @@ if [ -n "$EXT_FILE_CMD" ]; then
 fi
 if [ -n "$SENDFILE" ]; then
   echo '#define SENDFILE        '$SENDFILE >>config.h
+fi
+if [ -n "$DETACH" ]; then
+  echo '#define DETACH          '$DETACH >>config.h
 fi
 if [ -n "$QUERY_HACK" ]; then
   echo '#define QUERY_HACK      "'$QUERY_HACK'"' >>config.h

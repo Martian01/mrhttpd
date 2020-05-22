@@ -6,7 +6,7 @@
 # MrHTTPD v2.2.0
 # Copyright c 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
-if [ ! "$id -u" = "0" ]; then
+if [[ ! "$(id -u)" = "0" ]] ; then
   echo "Further processing is aborted since you are not logged in as user root."
   echo "Please log in as user root and repeat this step."
   echo
@@ -16,7 +16,7 @@ fi
 . ./mrhttpd.conf
 . ./checkconfig
 
-if [ -n "$ERROR" ]; then
+if [ -n "$ERROR" ] ; then
   echo "ERROR: There are fatal errors in the configuration file."
   echo "Installation aborted."
   echo
@@ -24,26 +24,26 @@ if [ -n "$ERROR" ]; then
 fi
 
 cp -f mrhttpd $BIN_DIR/
-if [ -n "$SERVER_DOCS" ]; then
+if [ -n "$SERVER_DOCS" ] ; then
   mkdir -p $SERVER_ROOT$SERVER_DOCS
-  cp -u -b html/[2345]*.html $SERVER_ROOT$SERVER_DOCS/
+  cp -u html/[2345]*.html $SERVER_ROOT$SERVER_DOCS/
 fi
-if [ -n "$DOC_DIR" ]; then
+if [ -n "$DOC_DIR" ] ; then
   mkdir -p $SERVER_ROOT$DOC_DIR
-  cp -u -b html/index.html $SERVER_ROOT$DOC_DIR/
-  cp -u -b html/mouse.png $SERVER_ROOT$DOC_DIR/
-  if [ -n "$SYSTEM_USER" ]; then
+  cp -u html/index.html $SERVER_ROOT$DOC_DIR/
+  cp -u html/mouse.png $SERVER_ROOT$DOC_DIR/
+  if [ -n "$SYSTEM_USER" ] ; then
     chown $SYSTEM_USER: $SERVER_ROOT$DOC_DIR
     chown $SYSTEM_USER: $SERVER_ROOT$DOC_DIR/index.html
     chown $SYSTEM_USER: $SERVER_ROOT$DOC_DIR/mouse.png
   fi
 fi
-if [ -n "$CGI_DIR" ]; then
+if [ -n "$CGI_DIR" ] ; then
   mkdir -p $SERVER_ROOT$CGI_DIR
 fi
-if [ -n "$LOG_FILE" ]; then
+if [ -n "$LOG_FILE" ] ; then
   touch $SERVER_ROOT$LOG_FILE
-  if [ -n "$SYSTEM_USER" ]; then
+  if [ -n "$SYSTEM_USER" ] ; then
     chown $SYSTEM_USER: $SERVER_ROOT$LOG_FILE
   fi
 fi

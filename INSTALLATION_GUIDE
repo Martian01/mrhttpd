@@ -7,3 +7,9 @@ Quick Installation Guide
 (4) as root: make install
 
 NB: you can skip step 2 and 3 if you feel lucky
+
+
+Public Docker Image
+-------------------
+
+docker run -d -p 8080:8080 -v <local directory>:/opt/mrhttpd/public dockahdockah/mrhttpd

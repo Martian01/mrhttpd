@@ -52,8 +52,8 @@ Credits
    available under http://members.xoom.com/gaztek.
 
    In the meantime MrHTTPD has evolved significantly and the source code
-   bears little or no resemblance to ghttpd. Also the runtime behaviour
-   shows fast performance and enterprise strength stability.
+   bears no more resemblance to ghttpd. Also the runtime behaviour shows
+   fast performance and enterprise strength stability.
 
    The documentation you are reading right now has mostly been written in
    plain text and incrementally extended over various MrHTTPD releases.
@@ -264,6 +264,12 @@ Installation
           systems other than Linux you need to select the user space
           routine.
 
+   DETACH
+          controls whether the server sends itself into the background
+          when it starts up. When running the server natively you will
+          almost always want to detach. Inside a Docker container you
+          will not want to detach it.
+
    QUERY_HACK
           is an option for the method of processing query strings. If this
           variable exists the query string of a resource will be
@@ -334,6 +340,7 @@ Starting and Stopping
    control script called rc.httpd is provided with mrhttpd. If you want to
    use it in a standard location like /etc/rc.d/ you need to copy it
    manually.
+
    #!/bin/bash
    #
    # Start the web server
@@ -446,9 +453,20 @@ Performance
    Lighttpd often seems to perform slightly better under the vanilla
    kernel.
 
+Docker
+
+   A Dockerfile is provided that can be used to build Docker images. On
+   Docker Hub there is a pre built-image available that has been built
+   using the configuration file mrhttpd-docker.conf in the repository.
+   You can employ that Docker image via
+
+   docker run -d -p 8080:8080 -v <local directory>:/opt/mrhttpd/public \
+      dockahdockah/mrhttpd
+
 References
 
-  1. http://sourceforge.net/projects/mrhttpd
-  2. http://members.xoom.com/gaztek
-  3. http://www.xmlmind.com/
-  4. http://ck-hack.blogspot.com/
+  1. https://github.com/Martian01/MrHTTPD
+  2. http://sourceforge.net/projects/mrhttpd
+  3. http://members.xoom.com/gaztek
+  4. http://www.xmlmind.com/
+  5. http://ck-hack.blogspot.com/
