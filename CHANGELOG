@@ -1,17 +1,17 @@
-MrHTTPD v1.0
+mrhttpd v1.0
 ============
 released 2007-02-11
-Initial public release of MrHTTPD
+Initial public release of mrhttpd
 
 
-MrHTTPD v1.0.1
+mrhttpd v1.0.1
 ==============
 released 2007-03-15
 Maintenance release
 Ignore SIGPIPE signal which can be the cause of spurious termination
 
 
-MrHTTPD v1.0.3
+mrhttpd v1.0.3
 ==============
 released 2007-03-20
 Maintenance release
@@ -19,21 +19,21 @@ Bug fix for spurious incomplete file transmission
 Added support for URL encoding
 
 
-MrHTTPD v1.0.4
+mrhttpd v1.0.4
 ==============
 released 2007-06-16
 Maintenance release
 Minor and cosmetic changes
 
 
-MrHTTPD v1.0.5
+mrhttpd v1.0.5
 ==============
 released 2008-07-28
 Maintenance release
 Bug fix for spurious incomplete transmission of large CGI output
 
 
-MrHTTPD v1.0.6
+mrhttpd v1.0.6
 ==============
 released 2008-08-04
 Maintenance release
@@ -41,7 +41,7 @@ Bug fix for overload of threading mechanism
 Logging performance and time stamp granularity significantly enhanced
 No more warnings when compiling with GCC 4
 
-MrHTTPD v2.0.0
+mrhttpd v2.0.0
 ==============
 released 2011-07-09
 Major functional release
@@ -56,7 +56,7 @@ Keep-alive
 More environment variables for CGI
 Better portability (untested)
 
-MrHTTPD v2.1.0
+mrhttpd v2.1.0
 ==============
 never released
 Maintenance and functional release
@@ -66,13 +66,13 @@ Option for mechanism of sending files (user space or kernel routine)
 Option for processing of query string
 Full portability (untested)
 
-MrHTTPD v2.2.0
+mrhttpd v2.2.0
 ==============
 released 2011-12-06
 Maintenance release 
 Bug fix for high load scenarios (socket descriptors above 1023)
 
-MrHTTPD v2.3.0
+mrhttpd v2.3.0
 ==============
 released 2020-05-22
 Functional release
@@ -81,8 +81,8 @@ Added support for Docker
 Docker image on Docker Hub released: dockahdockah/mrhttpd
 Bug fix for high load scenarios (socket descriptors above 1023)
 
-MrHTTPD v2.4.0
+mrhttpd v2.4.0
 ==============
 released 2020-06-13
 Maintenance release 
-Bug fix for rare segmentation fault (memory management off by one)
+Bug fix for rare segmentation fault (memory management function off by one)

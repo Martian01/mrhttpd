@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# This scripts does a basic installation of MrHTTPD.
+# This scripts does a basic installation of mrhttpd.
 # You still need to check file locations and permissions for sanity.
 #
-# MrHTTPD v2.4.0
+# mrhttpd v2.4.0
 # Copyright c 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 if [[ ! "$(id -u)" = "0" ]] ; then
