@@ -1,4 +1,5 @@
 #!/bin/bash
+#
 # This scripts checks the mrhttpd configuration and generates defaults
 #
 # mrhttpd v2.4.1

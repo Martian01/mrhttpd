@@ -1,4 +1,5 @@
 #!/bin/bash
+#
 # This scripts reads the mrhttpd configuration file mrhttpd.conf
 # and generates the C include config.h
 #

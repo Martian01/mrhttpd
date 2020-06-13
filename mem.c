@@ -1,12 +1,11 @@
 /*
 
 mrhttpd v2.4.1
-Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
+Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+as published by the Free Software Foundation, version 2.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -27,6 +26,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // Containing some trickery with local memory pools to avoid the management of
 // global heap memory using malloc() and free().
 // This may appear rigid, but it guarantees the absence of memory leaks.
+
+// In a way, memdescr and indexdescr are class definitions (in mrhttpd.h),
+// and the functions in this include are their instance methods.
 
 void md_init(memdescr *md) {
 	md->current = 0;
