@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.0
+mrhttpd v2.4.1
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -41,7 +41,7 @@ enum http_code_index {
 	HTTP_503,
 };
 
-const char *http_codelist[] = {
+const char *http_code[] = {
 	"200 OK",
 	"201 Created",
 	"202 Accepted",
@@ -61,7 +61,7 @@ const char *http_codelist[] = {
 };
 
 #ifdef SERVER_DOCS
-const char *http_filelist[] = {
+const char *http_file[] = {
 	SERVER_DOCS "/200.html",
 	SERVER_DOCS "/201.html",
 	SERVER_DOCS "/202.html",
@@ -81,42 +81,42 @@ const char *http_filelist[] = {
 };
 #endif
 
-#define error(x) { si = HTTP_ ## x ; goto senderror; }
+#define senderror(x) { statusCode = HTTP_ ## x ; goto _senderror; }
 
 enum connection_state http_request(const int sockfd) {
-	char filenamebuf[256];
-	memdescr filenamedescr = { sizeof(filenamebuf), 0, filenamebuf };
 
 	char *hp; 
 	char *method; 
 	char *resource;
 	char *protocol;
 	char *query; 
-	char *filename = filenamebuf;
 	char *connection;
-//	char *location = NULL;
 	
 	struct stat st;
 	
-	int si;
+	int statusCode;
 	int fd;
 	enum connection_state connection_state = CONNECTION_CLOSE;
 
+	char filenamebuf[512];
+	memdescr filenamedescr = { sizeof(filenamebuf), 0, filenamebuf };
+	char *filename = filenamebuf;
+
 	char requestheaderbuf[2048];
 	memdescr requestheadermempool = { sizeof(requestheaderbuf), 0, requestheaderbuf };
-	char *requestheader[41] = { NULL };
-	indexdescr requestheaderindex = { 40, 0, requestheader, &requestheadermempool };
+	char *requestheader[64];
+	indexdescr requestheaderindex = { sizeof(requestheader), 0, requestheader, &requestheadermempool };
 
-	char replyheaderbuf[256];
+	char replyheaderbuf[512];
 	memdescr replyheadermempool = { sizeof(replyheaderbuf), 0, replyheaderbuf };
-	char *replyheader[11] = { NULL };
-	indexdescr replyheaderindex = { 10, 0, replyheader, &replyheadermempool };
+	char *replyheader[16];
+	indexdescr replyheaderindex = { sizeof(replyheader), 0, replyheader, &replyheadermempool };
 
 	#ifdef CGI_URL
-	char envbuf[1024];
+	char envbuf[3072];
 	memdescr envmempool = { sizeof(envbuf), 0, envbuf };
-	char *env[41] = { NULL };
-	indexdescr envindex = { 40, 0, env, &envmempool };
+	char *env[96];
+	indexdescr envindex = { sizeof(env), 0, env, &envmempool };
 	#endif
 
 	#if LOG_LEVEL > 0 || defined(CGI_URL)
@@ -130,7 +130,7 @@ enum connection_state http_request(const int sockfd) {
 
 	// Read request header
 	if (recv_header_with_timeout(sockfd, &requestheaderindex) < 0)
-		return CONNECTION_CLOSE;
+		return CONNECTION_CLOSE; // socket is in undefined state
 
 	// Identify first token.
 	hp = requestheader[0];
@@ -139,20 +139,20 @@ enum connection_state http_request(const int sockfd) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "%15s  501  \"%s\"", client, method);
 		#endif
-		error(501); // method other than GET
+		senderror(501); // method other than GET
 	}
 	if (hp == NULL) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "%15s  400  \"%s\"", client, method);
 		#endif
-		error(400); // no resource
+		senderror(400); // no resource
 	}
 	resource = strsep(&hp, " ");
 	if (hp == NULL) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "%15s  400  \"%s  %s\"", client, method, resource);
 		#endif
-		error(400); // no protocol
+		senderror(400); // no protocol
 	}
 	protocol = strsep(&hp, " ");
 	#if LOG_LEVEL > 1
@@ -171,19 +171,19 @@ enum connection_state http_request(const int sockfd) {
 			connection_state = CONNECTION_KEEPALIVE;
 	}
 	else {
-		error(501);
+		senderror(501);
 	}
 
 	query = resource;
 	resource = strsep(&query, "?");
-	if ( url_decode(resource, resource, 256) ) // space-saving hack: decode in-place
-		error(500);
+	if ( url_decode(resource, resource, 512) ) // space-saving hack: decode in-place
+		goto _senderror500;
 	if ( url_decode(query, query, 2048) ) // space-saving hack: decode in-place
-		error(500);
+		goto _senderror500;
 		
 	#ifdef QUERY_HACK
-	char newquery[256];
-	char newresource[256];
+	char newquery[512];
+	char newresource[512];
 	memdescr newresourcedescr = { sizeof(newresource), 0, newresource };
 	
 	if ( query != NULL )
@@ -195,7 +195,7 @@ enum connection_state http_request(const int sockfd) {
 						md_extend(&newresourcedescr, "?") || 
 						md_extend(&newresourcedescr, newquery) 
 					)
-					error(500);
+					goto _senderror500;
 				resource = newresource;
 			}
 	#endif
@@ -205,30 +205,30 @@ enum connection_state http_request(const int sockfd) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "%15s  403  \"SEC  %s %s\"", client, resource, protocol);
 		#endif
-		error(403); // potential security risk - zero tolerance
+		senderror(403); // potential security risk - zero tolerance
 	}
 
 	#ifdef CGI_URL
 	if (!strncmp(resource, CGI_URL, strlen(CGI_URL))) { // presence of CGI URL indicates CGI script
 		if ( md_add(&filenamedescr, CGI_DIR) || md_extend(&filenamedescr, resource+strlen(CGI_URL)) )
-			error(500);
+			goto _senderror500;
 		if (stat(filename, &st)) {
 			#if LOG_LEVEL > 2
 			Log(sockfd, "%15s  404  \"CGI  %s %s\"", client, filename ,query==NULL?"":query);
 			#endif
-			error(404);
+			senderror(404);
 		}
 		if (!S_ISREG(st.st_mode)) {
 			#if LOG_LEVEL > 2
 			Log(sockfd, "%15s  403  \"CGI  %s %s\"", client, filename ,query==NULL?"":query);
 			#endif
-			error(403);
+			senderror(403);
 		}
 		if (access(filename, 1)) {
 			#if LOG_LEVEL > 2
 			Log(sockfd, "%15s  503  \"CGI  %s %s\"", client, filename ,query==NULL?"":query);
 			#endif
-			error(503);
+			senderror(503);
 		}
 		#if LOG_LEVEL > 3
 		Log(sockfd, "%15s  200  \"CGI  %s %s\"", client, filename ,query==NULL?"":query);
@@ -243,6 +243,7 @@ enum connection_state http_request(const int sockfd) {
 			Log(sockfd, "CGI Fork Child: Preparing to launch %s", filename);
 			#endif
 			// set up environment of cgi program
+			id_init(&envindex);
 			id_add_env_string(&envindex, "SERVER_NAME",  SERVER_NAME);
 			id_add_env_string(&envindex, "SERVER_PORT",  SERVER_PORT_STR);
 			id_add_env_string(&envindex, "SERVER_SOFTWARE", SERVER_SOFTWARE);
@@ -254,9 +255,10 @@ enum connection_state http_request(const int sockfd) {
 			id_add_env_number(&envindex, "REMOTE_PORT", port);
 			id_add_env_http_variables(&envindex, &requestheaderindex);
 			//set up reply header
+			id_init(&replyheaderindex);
 			id_add_string(&replyheaderindex, protocol);
 			md_extend_char(&replyheadermempool, ' ');
-			md_extend(&replyheadermempool, http_codelist[HTTP_200]);
+			md_extend(&replyheadermempool, http_code[HTTP_200]);
 			md_extend_char(&replyheadermempool, '\r');
 			id_add_string(&replyheaderindex, "Server: " SERVER_SOFTWARE "\r");
 			id_add_string(&replyheaderindex, "Connection: close\r");
@@ -281,7 +283,7 @@ enum connection_state http_request(const int sockfd) {
 		}
 		// parent process continues here
 		if (child_pid == -1)
-			error(500); // fork error
+			senderror(500); // fork error
 		// unfortunately it turns out it is better to wait for the child to exit
 		// since otherwise the connection hangs on rare occasions
 		#if DEBUG & 256
@@ -296,13 +298,13 @@ enum connection_state http_request(const int sockfd) {
 	#endif
 
 	if ( md_add(&filenamedescr, DOC_DIR) || md_extend(&filenamedescr, resource) ) 
-		error(500);
+		goto _senderror500;
 
 	if (stat(filename, &st)) {
 		#if LOG_LEVEL > 2
 		Log(sockfd, "%15s  404  \"STAT %s\"", client, filename);
 		#endif
-		error(404);
+		senderror(404);
 	}
 	
 	#ifdef DEFAULT_INDEX
@@ -312,16 +314,16 @@ enum connection_state http_request(const int sockfd) {
 			// because browsers will misinterpret relative links.
 			// Redirecting is difficult due to hex encoding
 			// and query string having been lost at this point.
-			// So let's just admit defeat.
-			error(404);
+			// So let's just admit defeat:
+			senderror(404);
 		}
 		if (md_extend(&filenamedescr, DEFAULT_INDEX) != 0)
-			error(500);
+			senderror(500);
 		if (stat(filename, &st) < 0) {
 			#if LOG_LEVEL > 2
 			Log(sockfd, "%15s  404  \"INST %s\"", client, filename);
 			#endif
-			error(404);
+			senderror(404);
 		}
 	}
 	#endif
@@ -330,45 +332,49 @@ enum connection_state http_request(const int sockfd) {
 		#if LOG_LEVEL > 2
 		Log(sockfd, "%15s  404  \"REGF %s\"", client, filename);
 		#endif
-		error(404);
+		senderror(404);
 	}
 
 	if ((fd = open(filename, O_RDONLY)) < 0) {
 		#if LOG_LEVEL > 2
 		Log(sockfd, "%15s  404  \"OPEN %s\"", client, filename);
 		#endif
-		error(404);
+		senderror(404);
 	}
 
 	#if LOG_LEVEL > 3
 	Log(sockfd, "%15s  200  \"OPEN %s\"", client, filename);
 	#endif
-	si = HTTP_200;
 
-sendfile:
+	statusCode = HTTP_200;
 
-	id_add_string(&replyheaderindex, protocol);
-	md_extend_char(&replyheadermempool, ' ');
-	md_extend(&replyheadermempool, http_codelist[si]);
-	md_extend_char(&replyheadermempool, '\r');
-	id_add_string(&replyheaderindex, "Server: " SERVER_SOFTWARE "\r");
-	id_add_string(&replyheaderindex, "Content-Length: ");
-	md_extend_number(&replyheadermempool, (unsigned) st.st_size);
-	md_extend_char(&replyheadermempool, '\r');
-	id_add_string(&replyheaderindex, "Content-Type: ");
-	md_extend(&replyheadermempool, mimetype(filename));
-	md_extend_char(&replyheadermempool, '\r');
-//	if (location) {
-//		id_add_string(&replyheaderindex, "Location: ");
-//		md_extend(&replyheadermempool, location);
-//		md_extend_char(&replyheadermempool, '\r');
-//	}
-	#ifdef PRAGMA
-	id_add_string(&replyheaderindex, "Pragma: " PRAGMA "\r");
-	#endif
-	id_add_string(&replyheaderindex, (connection_state == CONNECTION_KEEPALIVE) ? "Connection: Keep-Alive\r" : "Connection: close\r");
-	id_add_string(&replyheaderindex, "\r");
-	md_translate(&replyheadermempool, '\0', '\n');
+_sendfile:
+
+	id_init(&replyheaderindex);
+	if (
+		id_add_string(&replyheaderindex, protocol) ||
+		md_extend_char(&replyheadermempool, ' ') ||
+		md_extend(&replyheadermempool, http_code[statusCode]) ||
+		md_extend_char(&replyheadermempool, '\r') ||
+		id_add_string(&replyheaderindex, "Server: " SERVER_SOFTWARE "\r") ||
+		id_add_string(&replyheaderindex, "Content-Length: ") ||
+		md_extend_number(&replyheadermempool, (unsigned) st.st_size) ||
+		md_extend_char(&replyheadermempool, '\r') ||
+		id_add_string(&replyheaderindex, "Content-Type: ") ||
+		md_extend(&replyheadermempool, mimetype(filename)) ||
+		md_extend_char(&replyheadermempool, '\r') ||
+		#ifdef PRAGMA
+		id_add_string(&replyheaderindex, "Pragma: " PRAGMA "\r") ||
+		#endif
+		id_add_string(&replyheaderindex, (connection_state == CONNECTION_KEEPALIVE) ? "Connection: Keep-Alive\r" : "Connection: close\r") ||
+		id_add_string(&replyheaderindex, "\r") ||
+		md_translate(&replyheadermempool, '\0', '\n')
+	) {
+		#if LOG_LEVEL > 0
+		Log(sockfd, "Memory Error preparing reply header for %s", resource);
+		#endif
+		goto _sendfatal500;
+	}
 		
 	#ifdef TCP_CORK // Linux specific
 	int option = 1;
@@ -387,48 +393,55 @@ sendfile:
 
 	return connection_state;
 
-senderror:
+_senderror500:
+	statusCode = HTTP_500;
+
+_senderror:
 
 	#ifdef SERVER_DOCS
-	filename = (char *)(http_filelist[si]);
+	filename = (char *)(http_file[statusCode]);
 
 	if (stat(filename, &st) < 0) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "Server Doc Stat Error \"STAT %s\"", filename);
 		#endif
-		si = HTTP_500;
-		goto sendfatal;
+		goto _sendfatal;
 	}
 	else if ((fd = open(filename, O_RDONLY)) < 0) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "Server Doc Open Error  \"OPEN %s\"", filename);
 		#endif
-		si = HTTP_500;
-		goto sendfatal;
+		goto _sendfatal;
 	}
 	
-	goto sendfile; // send the standard error file
+	goto _sendfile; // send the standard error file
 	#endif
 	
-sendfatal:
+_sendfatal500:
+	statusCode = HTTP_500;
 
-	id_add_string(&replyheaderindex, protocol);
-	md_extend_char(&replyheadermempool, ' ');
-	md_extend(&replyheadermempool, http_codelist[si]);
-	md_extend_char(&replyheadermempool, '\r');
-	id_add_string(&replyheaderindex, "Server: " SERVER_SOFTWARE "\r");
-	id_add_string(&replyheaderindex, "Content-Length: 0\r");
-//	if (location) {
-//		id_add_string(&replyheaderindex, "Location: ");
-//		md_extend(&replyheadermempool, location);
-//		md_extend_char(&replyheadermempool, '\r');
-//	}
-	#ifdef PRAGMA
-	id_add_string(&replyheaderindex, "Pragma: " PRAGMA "\r");
-	#endif
-	id_add_string(&replyheaderindex, (connection_state == CONNECTION_KEEPALIVE) ? "Connection: Keep-Alive\r" : "Connection: close\r");
-	id_add_string(&replyheaderindex, "\r");
-	md_translate(&replyheadermempool, '\0', '\n');
+_sendfatal:
+
+	id_init(&replyheaderindex);
+	if (
+		id_add_string(&replyheaderindex, protocol) ||
+		md_extend_char(&replyheadermempool, ' ') ||
+		md_extend(&replyheadermempool, http_code[statusCode]) ||
+		md_extend_char(&replyheadermempool, '\r') ||
+		id_add_string(&replyheaderindex, "Server: " SERVER_SOFTWARE "\r") ||
+		id_add_string(&replyheaderindex, "Content-Length: 0\r") ||
+		#ifdef PRAGMA
+		id_add_string(&replyheaderindex, "Pragma: " PRAGMA "\r") ||
+		#endif
+		id_add_string(&replyheaderindex, (connection_state == CONNECTION_KEEPALIVE) ? "Connection: Keep-Alive\r" : "Connection: close\r") ||
+		id_add_string(&replyheaderindex, "\r") ||
+		md_translate(&replyheadermempool, '\0', '\n')
+	) {
+		#if LOG_LEVEL > 0
+		Log(sockfd, "Memory Error preparing fatal response %d", statusCode);
+		#endif
+		return CONNECTION_CLOSE;
+	}
 		
 	send_with_timeout(sockfd, replyheadermempool.mem, replyheadermempool.current);
 

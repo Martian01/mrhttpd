@@ -54,7 +54,7 @@ Note, however, that the high speed transfer only applies to serving static files
 
 Mrhttpd is configured at compile time and only at compile time. This (and the small size) makes it suitable for embedded systems.
 
-In order to configure mrhttpd you load the file mrhttpd.conf into an editor. The file distributed with mrhttpd contains explanations of the possible settings as part of the commentary.
+In order to configure mrhttpd you load the file `mrhttpd.conf` into an editor. The file distributed with mrhttpd contains explanations of the possible settings as part of the commentary.
 
 In general, the configuration file defines pairs of variables and their values separated by a "=" character. The configuration file is included in bash scripts and make files. This means the file must fulfil the syntactical requirements of both applications. For instance, bash requires that there be no spaces around the "=" sign.
 
@@ -70,7 +70,7 @@ specifies the directory that will become the chroot jail of the server. All othe
 defines the TCP port the server is listening on. The standard for the HTTP protocol is port 80, but you can use any other port if you like. It is quite possible to test one version of mrhttpd on a test port while the productive web server listens on port 80 at the same time.
 
 #### SERVER_NAME
-defines the host name sent to CGI programs as a parameter. This is different from the "Server" attribute in the HTTP header which is hardcoded to "mrhttpd/2.4.0".
+defines the host name sent to CGI programs as a parameter. This is different from the "Server" attribute in the HTTP header which is hardcoded to "mrhttpd/2.4.1".
 
 #### SERVER_DOCS
 defines the root directory for internal files. Internal files are documents like the 404 error page.
@@ -158,7 +158,7 @@ NB: You need to be root for the latter. As an experienced user you may feel safe
 
 ## Starting and Stopping
 
-Mrhttpd is always started in standalone mode and without parameters. It will send itself into the background. The foreground process will exit immediately. You can now do a test run from a local web browser by pointing it towards http://localhost/ (or whatever server, port and resource is appropriate in your case).
+Mrhttpd is always started without parameters. If it has been configured to detach from the foreground process (option DETACH), it will send itself into the background and the foreground process will exit immediately. In either case you can do a test run from a local web browser by pointing it towards http://localhost/ (or whatever server, port and resource is appropriate in your case).
 
 Mrhttpd will not read any configuration file at runtime. All parameters have been compiled into the binary. For that reason mrhttpd will accept a SIGHUP signal but it will not do anything.
 
@@ -191,6 +191,23 @@ After receiving those signals, mrhttpd will release the socket and wait 5 second
 	  *)
 	     echo "usage: $0 start|stop|restart"
 	esac
+
+If your system uses systemd you might want to use a service file similar to the following (untested):
+
+	[Unit]
+    Description=mrhttpd
+    StartLimitBurst=5
+    StartLimitIntervalSec=60
+
+    [Service]
+    Type=simple
+    User=root
+    ExecStart=/usr/local/sbin/mrhttpd
+    Restart=always
+    RestartSec=10
+
+    [Install]
+    WantedBy=multi-user.target
 
 ## Performance
 
@@ -243,7 +260,7 @@ A Dockerfile is provided that can be used to build Docker images. On Docker Hub 
 
 	docker run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
 
-If you want your own error pages, you can mount a directory to `/opt/mrhttpd/private`.
+If you want your own error pages, you can mount a directory on `/opt/mrhttpd/private`.
 
 ## References
 

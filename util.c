@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.0
+mrhttpd v2.4.1
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -36,7 +36,7 @@ pthread_mutex_t logfile_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int Log_open(const int socket) {
 	logfile = fopen(LOG_FILE, "at");
-	if (logfile != NULL) {
+	if (logfile != NULL)
 		Log(socket,
 			"Server started. Port: " SERVER_PORT_STR "."
 			#ifdef SYSTEM_USER

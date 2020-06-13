@@ -2,7 +2,7 @@
 # This scripts reads the mrhttpd configuration file mrhttpd.conf
 # and generates the C include config.h
 #
-# mrhttpd v2.4.0
+# mrhttpd v2.4.1
 # Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 . ./mrhttpd.conf
@@ -55,7 +55,7 @@ cat > config.h << EOF
 This include has been generated automatically. DO NOT CHANGE MANUALLY.
 Instead, change the master configuration file mrhttpd.conf and run configure.
 
-mrhttpd v2.4.0
+mrhttpd v2.4.1
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 */

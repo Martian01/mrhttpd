@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.0
+mrhttpd v2.4.1
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RECEIVE_TIMEOUT 30
 #define SEND_TIMEOUT 5
 
-int set_timeout(const int sockfd) {
+void set_timeout(const int sockfd) {
 	struct timeval timeout;
 
 	timeout.tv_sec  = RECEIVE_TIMEOUT;
@@ -43,15 +43,18 @@ int set_timeout(const int sockfd) {
 #define RECV_BUFLEN 2047
 
 int recv_header_with_timeout(const int sockfd, indexdescr *id) {
-	char buf[RECV_BUFLEN+1];
-	ssize_t numbytes = 0; 
+	char buf[RECV_BUFLEN + 1];
+	ssize_t numbytes; 
 	ssize_t received;
 	fd_set readfds;
 	struct timeval timeout;
 	char *cursor;
 	char *delim;
 
-read:
+	id_init(id);
+	numbytes = 0;
+
+_read:
 	#if DEBUG & 8
 	Log(sockfd, "RHWT: read loop iteration.");
 	#endif
@@ -68,7 +71,7 @@ read:
 		Log(sockfd, "RHWT: recv error. received=%d, errno=%d", received, errno);
 		#endif
 		if (errno == EAGAIN)
-			goto read;
+			goto _read;
 		return received; // propagate error
 	}
 	#if DEBUG & 8
@@ -78,7 +81,7 @@ read:
 	buf[numbytes] = '\0'; // end marker for strstr
 		
 	cursor = buf; // cursor positioned on beginning of line
-parse:
+_parse:
 	delim = strstr(cursor, "\r\n"); // search for end of line
 	#if DEBUG & 16
 	Log(sockfd, "RHWT: parser loop iteration. numbytes=%#x, buf=%p, cursor=%p, delim=%p", 
@@ -88,10 +91,10 @@ parse:
 		if (cursor > buf) { // make some space and keep reading
 			numbytes -= (cursor - buf);
 			memmove(buf, cursor, numbytes);
-			goto read;
+			goto _read;
 		}
 		if (numbytes < RECV_BUFLEN) { // buffer not full: keep reading
-			goto read;
+			goto _read;
 		}
 		return -1; // buffer full: we're bloated
 	}
@@ -102,13 +105,13 @@ parse:
 		#if DEBUG & 32
 		Log(sockfd, "RHWT: parser found header: %s", cursor);
 		#endif
-		cursor = delim+2; // beginning of next line
-		if (cursor < buf+numbytes) {
-			goto parse; // find next line in buffer
+		cursor = delim + 2; // beginning of next line
+		if (cursor < buf + numbytes) {
+			goto _parse; // find next line in buffer
 		}
 		else {
 			numbytes = 0; // buffer exhausted, read more data
-			goto read;
+			goto _read;
 		}
 	}
 		
@@ -123,8 +126,8 @@ parse:
 	// to read any further data after the header. 
 
 	#if DEBUG & 64
-	cursor = delim+2;
-	if (cursor < buf+numbytes) { // there is some data left in the buffer
+	cursor = delim + 2;
+	if (cursor < buf + numbytes) { // there is some data left in the buffer
 		numbytes -= (cursor - buf); // save the data in the buffer
 		memmove(buf, cursor, numbytes);
 		buf[32] = '\0'; // hack for logging purposes only

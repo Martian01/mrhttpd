@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.0
+mrhttpd v2.4.1
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -28,11 +28,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // global heap memory using malloc() and free().
 // This may appear rigid, but it guarantees the absence of memory leaks.
 
+void md_init(memdescr *md) {
+	md->current = 0;
+}
+
 enum error_state md_add(memdescr *md, const char *string) {
 	int added;
 
 	if (string == NULL)
-		return ERROR_TRUE; // deferred detection of undesirable condition
+		return ERROR_TRUE; // deferred detection of error condition
 
 	added = strlen(string) + 1;
 
@@ -47,7 +51,7 @@ enum error_state md_extend(memdescr *md, const char *string) {
 	int target, added;
 
 	if (string == NULL)
-		return ERROR_TRUE; // deferred detection of undesirable condition
+		return ERROR_TRUE; // deferred detection of error condition
 
 	target = (md->current == 0) ? 0 : (md->current - 1);
 	added = strlen(string) + 1;
@@ -91,11 +95,16 @@ enum error_state md_translate(memdescr *md, const char from, const char to) {
 	return ERROR_FALSE; // success
 }
 
+void id_init(indexdescr *id) {
+	md_init(id->md);
+	id->current = 0;
+}
+
 enum error_state id_add_string(indexdescr *id, const char *string) {
 	int target;
 
 	if (string == NULL)
-		return ERROR_TRUE; // deferred detection of undesirable condition
+		return ERROR_TRUE; // deferred detection of error condition
 
 	if (id->current >= id->max)
 		return ERROR_TRUE; // no space left in index array
