@@ -1,6 +1,6 @@
 /*
 
-MrHTTPD v2.3.0
+MrHTTPD v2.4.0
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -23,26 +23,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 enum http_code_index {
-HTTP_200,
-HTTP_201,
-HTTP_202,
-HTTP_204,
-HTTP_300,
-HTTP_301,
-HTTP_302,
-HTTP_304,
-HTTP_400,
-HTTP_401,
-HTTP_403,
-HTTP_404,
-HTTP_500,
-HTTP_501,
-HTTP_502,
-HTTP_503,
+	HTTP_200,
+	HTTP_201,
+	HTTP_202,
+	HTTP_204,
+	HTTP_300,
+	HTTP_301,
+	HTTP_302,
+	HTTP_304,
+	HTTP_400,
+	HTTP_401,
+	HTTP_403,
+	HTTP_404,
+	HTTP_500,
+	HTTP_501,
+	HTTP_502,
+	HTTP_503,
 };
 
-const char *http_codelist[] =
-{
+const char *http_codelist[] = {
 	"200 OK",
 	"201 Created",
 	"202 Accepted",
@@ -62,8 +61,7 @@ const char *http_codelist[] =
 };
 
 #ifdef SERVER_DOCS
-const char *http_filelist[] =
-{
+const char *http_filelist[] = {
 	SERVER_DOCS "/200.html",
 	SERVER_DOCS "/201.html",
 	SERVER_DOCS "/202.html",
@@ -85,8 +83,7 @@ const char *http_filelist[] =
 
 #define error(x) { si = HTTP_ ## x ; goto senderror; }
 
-enum connection_state http_request(const int sockfd)
-{
+enum connection_state http_request(const int sockfd) {
 	char filenamebuf[256];
 	memdescr filenamedescr = { sizeof(filenamebuf), 0, filenamebuf };
 
@@ -194,7 +191,7 @@ enum connection_state http_request(const int sockfd)
 			if ( strncmp(resource, QUERY_HACK, strlen(QUERY_HACK)) == 0 ) {
 				if ( 
 						filename_encode(query, newquery, sizeof(newquery)) ||
-						md_init(&newresourcedescr, resource) || 
+						md_add(&newresourcedescr, resource) || 
 						md_extend(&newresourcedescr, "?") || 
 						md_extend(&newresourcedescr, newquery) 
 					)
@@ -213,7 +210,7 @@ enum connection_state http_request(const int sockfd)
 
 	#ifdef CGI_URL
 	if (!strncmp(resource, CGI_URL, strlen(CGI_URL))) { // presence of CGI URL indicates CGI script
-		if ( md_init(&filenamedescr, CGI_DIR) || md_extend(&filenamedescr, resource+strlen(CGI_URL)) )
+		if ( md_add(&filenamedescr, CGI_DIR) || md_extend(&filenamedescr, resource+strlen(CGI_URL)) )
 			error(500);
 		if (stat(filename, &st)) {
 			#if LOG_LEVEL > 2
@@ -298,7 +295,7 @@ enum connection_state http_request(const int sockfd)
 	}
 	#endif
 
-	if ( md_init(&filenamedescr, DOC_DIR) || md_extend(&filenamedescr, resource) ) 
+	if ( md_add(&filenamedescr, DOC_DIR) || md_extend(&filenamedescr, resource) ) 
 		error(500);
 
 	if (stat(filename, &st)) {

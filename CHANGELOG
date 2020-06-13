@@ -66,8 +66,23 @@ Option for mechanism of sending files (user space or kernel routine)
 Option for processing of query string
 Full portability (untested)
 
-MrHTTPD v2.3.0
+MrHTTPD v2.2.0
 ==============
 released 2011-12-06
 Maintenance release 
 Bug fix for high load scenarios (socket descriptors above 1023)
+
+MrHTTPD v2.3.0
+==============
+released 2020-05-22
+Functional release
+Added configuration option for detaching
+Added support for Docker
+Docker image on Docker Hub released: dockahdockah/mrhttpd
+Bug fix for high load scenarios (socket descriptors above 1023)
+
+MrHTTPD v2.4.0
+==============
+released 2020-06-13
+Maintenance release 
+Bug fix for rare segmentation fault (memory management off by one)

@@ -1,6 +1,6 @@
 /*
 
-MrHTTPD v2.3.0
+MrHTTPD v2.4.0
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -28,54 +28,50 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // global heap memory using malloc() and free().
 // This may appear rigid, but it guarantees the absence of memory leaks.
 
-enum error_state md_init(memdescr *md, const char *str1)
-{
-	int len1;
+enum error_state md_add(memdescr *md, const char *string) {
+	int added;
 
-	if (str1 == NULL)
+	if (string == NULL)
 		return ERROR_TRUE; // deferred detection of undesirable condition
 
-	len1 = strlen(str1);
-	if (len1 >= md->size)
+	added = strlen(string) + 1;
+
+	if ((md->current + added) >= md->size)
 		return ERROR_TRUE; // memory allocation failed
-	memcpy(md->mem, str1, len1);
-	md->mem[len1] = '\0';
-	md->current = len1 + 1;
+	memcpy(md->mem + md->current, string, added);
+	md->current += added;
 	return ERROR_FALSE; // success
 }
 
-enum error_state md_extend(memdescr *md, const char *str2)
-{
-	int len1, len2;
+enum error_state md_extend(memdescr *md, const char *string) {
+	int target, added;
 
-	if (str2 == NULL)
+	if (string == NULL)
 		return ERROR_TRUE; // deferred detection of undesirable condition
 
-	len1 = (md->current == 0)?0:(md->current - 1);
-	len2 = strlen(str2);
-	if ((len1 + len2) >= md->size)
+	target = (md->current == 0) ? 0 : (md->current - 1);
+	added = strlen(string) + 1;
+
+	if ((target + added) >= md->size)
 		return ERROR_TRUE; // memory allocation failed
-	memcpy(md->mem + len1, str2, len2);
-	md->mem[len1 + len2] = '\0';
-	md->current = len1 + len2 + 1;
+	memcpy(md->mem + target, string, added);
+	md->current = target + added;
 	return ERROR_FALSE; // success
 }
 
-enum error_state md_extend_char(memdescr *md, const char c)
-{
-	int len;
+enum error_state md_extend_char(memdescr *md, const char c) {
+	int target;
 
-	len = (md->current == 0)?0:(md->current - 1);
-	if ((len + 1) >= md->size)
+	target = (md->current == 0) ? 0 : (md->current - 1);
+	if ((target + 2) >= md->size)
 		return ERROR_TRUE; // memory allocation failed
-	md->mem[len++] = c;
-	md->mem[len++] = '\0';
-	md->current = len;
+	md->mem[target++] = c;
+	md->mem[target++] = '\0';
+	md->current = target;
 	return ERROR_FALSE; // success
 }
 
-enum error_state md_extend_number(memdescr *md, const unsigned num)
-{
+enum error_state md_extend_number(memdescr *md, const unsigned num) {
 	static char digit[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 	
 	if (num < 10)
@@ -85,8 +81,7 @@ enum error_state md_extend_number(memdescr *md, const unsigned num)
 
 }
 
-enum error_state md_translate(memdescr *md, const char from, const char to)
-{
+enum error_state md_translate(memdescr *md, const char from, const char to) {
 	char *cp;
 	int i;
 	
@@ -96,33 +91,25 @@ enum error_state md_translate(memdescr *md, const char from, const char to)
 	return ERROR_FALSE; // success
 }
 
-enum error_state id_add_string(indexdescr *id, const char *str1)
-{
-	int len1;
-	char *str;
-	memdescr *md;
+enum error_state id_add_string(indexdescr *id, const char *string) {
+	int target;
 
-	if (str1 == NULL)
-		return ERROR_TRUE; // deferred detection of undesirable condition ;)
+	if (string == NULL)
+		return ERROR_TRUE; // deferred detection of undesirable condition
 
 	if (id->current >= id->max)
 		return ERROR_TRUE; // no space left in index array
 
-	md = id->md;
-	len1 = strlen(str1);
-	if ((md->current + len1) >= md->size)
+	target = id->md->current;
+	if (md_add(id->md, string))
 		return ERROR_TRUE; // memory allocation failed
-	str = md->mem + md->current;
-	md->current += len1 + 1;
-	memcpy(str, str1, len1);
-	str[len1] = '\0';
-	id->index[id->current++] = str;
+
+	id->index[id->current++] = id->md->mem + target;
 	id->index[id->current] = NULL;
 	return ERROR_FALSE; // success
 }
 
-enum error_state id_add_env_string(indexdescr *eid, const char *variable, const char *value)
-{
+enum error_state id_add_env_string(indexdescr *eid, const char *variable, const char *value) {
 	return
 		id_add_string(eid, variable) ||
 		md_extend(eid->md, "=") ||
@@ -130,8 +117,7 @@ enum error_state id_add_env_string(indexdescr *eid, const char *variable, const 
 		;
 }
 
-enum error_state id_add_env_number(indexdescr *eid, const char *variable, const unsigned num)
-{
+enum error_state id_add_env_number(indexdescr *eid, const char *variable, const unsigned num) {
 	return
 		id_add_string(eid, variable) ||
 		md_extend(eid->md, "=") ||
@@ -139,8 +125,7 @@ enum error_state id_add_env_number(indexdescr *eid, const char *variable, const 
 		;
 }
 
-enum error_state id_add_env_http_variables(indexdescr *eid, indexdescr *hid)
-{
+enum error_state id_add_env_http_variables(indexdescr *eid, indexdescr *hid) {
 	char **strp;
 	char *name, *value;
 	
@@ -160,8 +145,7 @@ enum error_state id_add_env_http_variables(indexdescr *eid, indexdescr *hid)
 
 }
 
-char *id_read_variable(indexdescr *id, const char *variable)
-{
+char *id_read_variable(indexdescr *id, const char *variable) {
 	size_t vlen;
 	char **strp;
 	char *value;
@@ -169,7 +153,7 @@ char *id_read_variable(indexdescr *id, const char *variable)
 	vlen = strlen(variable);
 	for (strp = id->index; *strp != NULL; strp++) {
 		if (strncmp(*strp, variable, vlen) == 0) {
-			value = *strp+vlen;
+			value = *strp + vlen;
 			if (*value == ':') {
 				return startof(++value);
 			}

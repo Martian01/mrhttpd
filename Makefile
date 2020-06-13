@@ -1,4 +1,4 @@
-# Makefile for MrHTTPD v2.3.0
+# Makefile for MrHTTPD v2.4.0
 #
 # Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 

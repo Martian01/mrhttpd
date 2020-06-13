@@ -1,6 +1,6 @@
 /*
 
-MrHTTPD v2.3.0
+MrHTTPD v2.4.0
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -46,7 +46,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "config.h"
 
-#define SERVER_SOFTWARE   "MrHTTPD/2.3.0"
+#define SERVER_SOFTWARE   "mrhttpd/2.4.0"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"
@@ -55,17 +55,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 enum error_state { ERROR_FALSE, ERROR_TRUE };
 
-enum connection_state { CONNECTION_KEEPALIVE, CONNECTION_CLOSE};
+enum connection_state { CONNECTION_KEEPALIVE, CONNECTION_CLOSE };
 
-typedef struct
-{
+typedef struct {
 	int size;
 	int current;
 	char *mem;
 } memdescr;
 
-typedef struct
-{
+typedef struct {
 	int max;
 	int current;
 	char **index;
@@ -89,7 +87,7 @@ ssize_t mysendfile(const int, const int, ssize_t);
 ssize_t sendfile_with_timeout(const int, const int, const ssize_t);
 
 // mem
-enum error_state md_init(memdescr *, const char *);
+enum error_state md_add(memdescr *, const char *);
 enum error_state md_extend(memdescr *, const char *);
 enum error_state md_extend_char(memdescr *, const char);
 enum error_state md_extend_number(memdescr *, const unsigned);

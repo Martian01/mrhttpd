@@ -1,6 +1,6 @@
 /*
 
-MrHTTPD v2.3.0
+MrHTTPD v2.4.0
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -25,8 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 int master_fd;
 
-int main(void)
-{
+int main(void) {
 	int rc;
 	int new_fd;
 	struct sockaddr_in local_addr;
@@ -162,8 +161,7 @@ int main(void)
 	}
 }
 
-void *serverthread(void *arg)
-{
+void *serverthread(void *arg) {
 	enum connection_state connection_state;
 
 	// Detach thread - it will terminate on its own
@@ -191,8 +189,7 @@ void *serverthread(void *arg)
 	return NULL;
 }
 
-void sigterm_handler(const int signal)
-{
+void sigterm_handler(const int signal) {
 	// Exit fairly gracefully
 	close(master_fd);
 	sleep(5); // Give threads a chance
@@ -206,8 +203,7 @@ void sigterm_handler(const int signal)
 	exit(0);
 }
 
-void sigchld_handler(const int signal)
-{
+void sigchld_handler(const int signal) {
 	while(waitpid(-1, NULL, WNOHANG) > 0) // Clean up zombies
 		;
 }

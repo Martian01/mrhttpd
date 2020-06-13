@@ -1,6 +1,6 @@
 /*
 
-MrHTTPD v2.3.0
+MrHTTPD v2.4.0
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -28,8 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RECEIVE_TIMEOUT 30
 #define SEND_TIMEOUT 5
 
-int set_timeout(const int sockfd)
-{
+int set_timeout(const int sockfd) {
 	struct timeval timeout;
 
 	timeout.tv_sec  = RECEIVE_TIMEOUT;
@@ -43,8 +42,7 @@ int set_timeout(const int sockfd)
 
 #define RECV_BUFLEN 2047
 
-int recv_header_with_timeout(const int sockfd, indexdescr *id)
-{
+int recv_header_with_timeout(const int sockfd, indexdescr *id) {
 	char buf[RECV_BUFLEN+1];
 	ssize_t numbytes = 0; 
 	ssize_t received;
@@ -142,8 +140,7 @@ parse:
 	return 0; // assume success
 }
 
-ssize_t send_with_timeout(const int sockfd, const char *buf, const ssize_t len)
-{
+ssize_t send_with_timeout(const int sockfd, const char *buf, const ssize_t len) {
 	ssize_t numbytes, sent, remaining;
 	fd_set writefds;
 	struct timeval timeout;
@@ -191,8 +188,7 @@ ssize_t send_with_timeout(const int sockfd, const char *buf, const ssize_t len)
 
 #define SF_BUFLEN 16384
 
-ssize_t mysendfile(const int sockfd, const int fd, ssize_t count)
-{
+ssize_t mysendfile(const int sockfd, const int fd, ssize_t count) {
 	char buf[SF_BUFLEN];
 	ssize_t received, sent;
 	ssize_t total = 0;
@@ -233,8 +229,7 @@ ssize_t mysendfile(const int sockfd, const int fd, ssize_t count)
 
 #endif
 
-ssize_t sendfile_with_timeout(const int sockfd, const int fd, const ssize_t len)
-{
+ssize_t sendfile_with_timeout(const int sockfd, const int fd, const ssize_t len) {
 	ssize_t numbytes, remaining, sent;
 
 	numbytes = 0;

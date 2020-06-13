@@ -1,6 +1,6 @@
 /*
 
-MrHTTPD v2.3.0
+MrHTTPD v2.4.0
 Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -62,8 +62,7 @@ void Log_close(const int socket) {
 	fclose(logfile);
 }
 
-void Log(const int socket, const char *format, ...)
-{
+void Log(const int socket, const char *format, ...) {
 	va_list ap;
 	struct timeval tv;
 	struct timezone tz;
@@ -95,10 +94,9 @@ void Log(const int socket, const char *format, ...)
 
 // mime type detection based on suffix is a light-weight alternative to file(1)
 
-const char *mimetype(const char *filename)
-{
-	static const char *(assocNames[][2]) =
-	{
+const char *mimetype(const char *filename) {
+
+	static const char *(assocNames[][2]) = {
 
 /* the standard mime types should always be present */
 
@@ -209,8 +207,7 @@ const char *mimetype(const char *filename)
 
 // Support for hex encoding and decoding
 
-int hexdigit(const char c)
-{
+int hexdigit(const char c) {
 	static const char digits[] = "0123456789abcdef";
 	const char *cp;
 
@@ -220,8 +217,7 @@ int hexdigit(const char c)
 	return -1;
 }
 
-enum error_state url_decode(const char *in, char *out, size_t n)
-{
+enum error_state url_decode(const char *in, char *out, size_t n) {
 	if (in == NULL)
 		return ERROR_FALSE; // allowed
 	for (; (*out = *in) != '\0'; in++, out ++, n--) {
@@ -242,8 +238,7 @@ enum error_state url_decode(const char *in, char *out, size_t n)
 	return ERROR_FALSE; // success
 }
 
-enum error_state filename_encode(const char *in, char *out, size_t n)
-{
+enum error_state filename_encode(const char *in, char *out, size_t n) {
 	if (in == NULL)
 		return ERROR_FALSE; // allowed
 	for (; (*out = *in) != '\0'; in++, out ++, n--) {
@@ -264,8 +259,7 @@ enum error_state filename_encode(const char *in, char *out, size_t n)
 
 // Miscellaneous
 
-char *str_tolower(char *string)
-{
+char *str_tolower(char *string) {
 	char *cp;
 	
 	if (string != NULL)
@@ -274,8 +268,7 @@ char *str_tolower(char *string)
 	return string;
 }
 
-char *str_toupper(char *string)
-{
+char *str_toupper(char *string) {
 	char *cp;
 	
 	if (string != NULL)
@@ -284,8 +277,7 @@ char *str_toupper(char *string)
 	return string;
 }
 
-char *startof(char *string)
-{
+char *startof(char *string) {
 	if (string != NULL)
 		while (*string != '\0' && !isgraph(*string))
 			++string;
