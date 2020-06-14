@@ -41,7 +41,7 @@ int main(void) {
 
 	// Allow re-use of port & address
 	rc = 1;
-	setsockopt(master_fd, SOL_SOCKET, SO_REUSEADDR, (void*)&rc, sizeof(rc));
+	setsockopt(master_fd, SOL_SOCKET, SO_REUSEADDR, (void *) &rc, sizeof(rc));
 
 	#if 0
 	// Make socket non-blocking
@@ -56,7 +56,7 @@ int main(void) {
 	local_addr.sin_addr.s_addr = INADDR_ANY;
 	memset(&(local_addr.sin_zero), 0, sizeof(local_addr.sin_zero));
 
-	if (bind(master_fd, (struct sockaddr *)&local_addr, sizeof(struct sockaddr)) < 0) {
+	if (bind(master_fd, (struct sockaddr *) &local_addr, sizeof(struct sockaddr)) < 0) {
 		puts("Could not bind to port, exiting");
 		exit(1);
 	}
@@ -140,7 +140,7 @@ int main(void) {
 		if (new_fd >= 0) {
 			// Spawn thread to handle new socket
 			// The cast is a non-portable kludge to implement call-by-value
-			if (pthread_create(&thread_id, NULL, serverthread, (void *)(long)new_fd)) {
+			if (pthread_create(&thread_id, NULL, serverthread, (void *) (long) new_fd)) {
 				// Creation of thread failed - 
 				// most likely due to thread overload.
 				//
@@ -161,12 +161,10 @@ int main(void) {
 }
 
 void *serverthread(void *arg) {
-	enum connection_state connection_state;
-
 	// Detach thread - it will terminate on its own
 	pthread_detach(pthread_self());
 
-	const int sockfd = (int)(long)arg; // Non-portable kludge to implement call-by-value;
+	const int sockfd = (int) (long) arg; // Non-portable kludge to implement call-by-value;
 
 	#if DEBUG & 1
 	Log(sockfd, "Debug: worker thread starting.");
@@ -174,7 +172,7 @@ void *serverthread(void *arg) {
 	
 	set_timeout(sockfd);
 
-	while ( (connection_state = http_request(sockfd)) == CONNECTION_KEEPALIVE )
+	while (http_request(sockfd) == CONNECTION_KEEPALIVE)
 		;
 
 	// Do not shut down the socket as this will affect running cgi programs.

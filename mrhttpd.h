@@ -62,14 +62,14 @@ typedef struct {
 	int size;
 	int current;
 	char *mem;
-} memdescr;
+} mempool;
 
 typedef struct {
-	int max;
+	int size;
 	int current;
-	char **index;
-	memdescr *md;
-} indexdescr;
+	char **strings;
+	mempool *mp;
+} stringpool;
 
 // main
 int main(void);
@@ -82,24 +82,24 @@ enum connection_state http_request(const int);
 
 // io
 void set_timeout(const int);
-int recv_header_with_timeout(indexdescr *, const int);
+int recv_header_with_timeout(stringpool *, const int);
 ssize_t send_with_timeout(const int, const char *, const ssize_t);
 ssize_t mysendfile(const int, const int, ssize_t);
 ssize_t sendfile_with_timeout(const int, const int, const ssize_t);
 
 // mem
-void md_reset(memdescr *);
-enum error_state md_add(memdescr *, const char *);
-enum error_state md_extend(memdescr *, const char *);
-enum error_state md_extend_char(memdescr *, const char);
-enum error_state md_extend_number(memdescr *, const unsigned);
-enum error_state md_translate(memdescr *, const char, const char);
-void id_reset(indexdescr *);
-enum error_state id_add(indexdescr *, const char *);
-enum error_state id_add_variable(indexdescr *, const char *, const char *);
-enum error_state id_add_variable_number(indexdescr *, const char *, const unsigned);
-enum error_state id_add_variables(indexdescr *, const indexdescr *, const char*);
-char *id_read_variable(const indexdescr *, const char *);
+void mp_reset(mempool *);
+enum error_state mp_add(mempool *, const char *);
+enum error_state mp_extend(mempool *, const char *);
+enum error_state mp_extend_char(mempool *, const char);
+enum error_state mp_extend_number(mempool *, const unsigned);
+enum error_state mp_replace(mempool *, const char, const char);
+void sp_reset(stringpool *);
+enum error_state sp_add(stringpool *, const char *);
+enum error_state sp_add_variable(stringpool *, const char *, const char *);
+enum error_state sp_add_variable_number(stringpool *, const char *, const unsigned);
+enum error_state sp_add_variables(stringpool *, const stringpool *, const char*);
+char *sp_read_variable(const stringpool *, const char *);
 
 // util
 extern FILE *logfile;

@@ -41,7 +41,7 @@ void set_timeout(const int sockfd) {
 
 #define RECV_BUFLEN 2047
 
-int recv_header_with_timeout(indexdescr *id, const int sockfd) {
+int recv_header_with_timeout(stringpool *sp, const int sockfd) {
 	char buf[RECV_BUFLEN + 1];
 	ssize_t numbytes; 
 	ssize_t received;
@@ -50,7 +50,7 @@ int recv_header_with_timeout(indexdescr *id, const int sockfd) {
 	char *cursor;
 	char *delim;
 
-	id_reset(id);
+	sp_reset(sp);
 	numbytes = 0;
 
 _read:
@@ -99,7 +99,7 @@ _parse:
 	}
 	else if (cursor != delim) { // line is not empty
 		*delim = '\0'; // make it a zero terminated string
-		if (id_add(id, cursor)) // add string to header array
+		if (sp_add(sp, cursor)) // add string to header array
 		  return -1; // header array full or whatever
 		#if DEBUG & 32
 		Log(sockfd, "RHWT: parser found header: %s", cursor);
