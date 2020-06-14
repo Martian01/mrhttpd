@@ -262,8 +262,7 @@ enum connection_state http_request(const int sockfd) {
 			#if LOG_LEVEL > 0
 			Log(sockfd, "Memory Error preparing CGI header for %s", filename);
 			#endif
-			statusCode = HTTP_500;
-			goto _sendfatal;
+			goto _senderror500;
 		}
 				
 		pid_t child_pid = fork();
@@ -299,7 +298,7 @@ enum connection_state http_request(const int sockfd) {
 		// parent process continues here
 		if (child_pid == -1)
 			goto _senderror500; // fork error
-		// unfortunately it turns out it is better to wait for the child to exit
+		// unfortunately it turns out to be better to wait for the child to exit
 		// since otherwise the connection hangs on rare occasions
 		#if DEBUG & 256
 		Log(sockfd, "CGI Fork Parent: waiting for child %d", child_pid);
