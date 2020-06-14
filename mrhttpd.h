@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.2
+mrhttpd v2.4.3
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -47,7 +47,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "config.h"
 
-#define SERVER_SOFTWARE   "mrhttpd/2.4.2"
+#define SERVER_SOFTWARE   "mrhttpd/2.4.3"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"
@@ -82,7 +82,7 @@ enum connection_state http_request(const int);
 
 // io
 void set_timeout(const int);
-int recv_header_with_timeout(const int , indexdescr *);
+int recv_header_with_timeout(indexdescr *, const int);
 ssize_t send_with_timeout(const int, const char *, const ssize_t);
 ssize_t mysendfile(const int, const int, ssize_t);
 ssize_t sendfile_with_timeout(const int, const int, const ssize_t);
@@ -95,11 +95,11 @@ enum error_state md_extend_char(memdescr *, const char);
 enum error_state md_extend_number(memdescr *, const unsigned);
 enum error_state md_translate(memdescr *, const char, const char);
 void id_reset(indexdescr *);
-enum error_state id_add_string(indexdescr *, const char *);
-enum error_state id_add_env_string(indexdescr *, const char *, const char *);
-enum error_state id_add_env_number(indexdescr *, const char *, const unsigned);
-enum error_state id_add_env_http_variables(indexdescr *, indexdescr *);
-char *id_read_variable(indexdescr *, const char *);
+enum error_state id_add(indexdescr *, const char *);
+enum error_state id_add_variable(indexdescr *, const char *, const char *);
+enum error_state id_add_variable_number(indexdescr *, const char *, const unsigned);
+enum error_state id_add_variables(indexdescr *, const indexdescr *, const char*);
+char *id_read_variable(const indexdescr *, const char *);
 
 // util
 extern FILE *logfile;

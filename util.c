@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.2
+mrhttpd v2.4.3
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef EXT_FILE_CMD
 #include <unistd.h>
 #endif
-
 
 // Log support
 
@@ -219,7 +218,7 @@ int hexdigit(const char c) {
 enum error_state url_decode(const char *in, char *out, size_t n) {
 	if (in == NULL)
 		return ERROR_FALSE; // allowed
-	for (; (*out = *in) != '\0'; in++, out ++, n--) {
+	for (; (*out = *in) != '\0'; in++, out++, n--) {
 		if (n < 2)
 			return ERROR_TRUE; // out of space
 		if (*in == '%') {
@@ -254,7 +253,6 @@ enum error_state filename_encode(const char *in, char *out, size_t n) {
 	}
 	return ERROR_FALSE; // success
 }
-
 
 // Miscellaneous
 

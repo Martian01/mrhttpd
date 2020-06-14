@@ -70,7 +70,7 @@ specifies the directory that will become the chroot jail of the server. All othe
 defines the TCP port the server is listening on. The standard for the HTTP protocol is port 80, but you can use any other port if you like. It is quite possible to test one version of mrhttpd on a test port while the productive web server listens on port 80 at the same time.
 
 #### SERVER_NAME
-defines the host name sent to CGI programs as a parameter. This is different from the "Server" attribute in the HTTP header which is hardcoded to "mrhttpd/2.4.2".
+defines the host name sent to CGI programs as a parameter. This is different from the "Server" attribute in the HTTP header which is hardcoded to "mrhttpd/2.4.3".
 
 #### SERVER_DOCS
 defines the root directory for internal files. Internal files are documents like the 404 error page.

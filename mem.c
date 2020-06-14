@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.2
+mrhttpd v2.4.3
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mrhttpd.h"
-
 
 // Memory management functions
 
@@ -102,7 +101,7 @@ void id_reset(indexdescr *id) {
 	id->current = 0;
 }
 
-enum error_state id_add_string(indexdescr *id, const char *string) {
+enum error_state id_add(indexdescr *id, const char *string) {
 	int target;
 
 	if (string == NULL)
@@ -119,36 +118,36 @@ enum error_state id_add_string(indexdescr *id, const char *string) {
 	return ERROR_FALSE; // success
 }
 
-enum error_state id_add_env_string(indexdescr *eid, const char *variable, const char *value) {
+enum error_state id_add_variable(indexdescr *id, const char *varname, const char *value) {
 	return
-		id_add_string(eid, variable) ||
-		md_extend(eid->md, "=") ||
-		md_extend(eid->md, value)
+		id_add(id, varname) ||
+		md_extend(id->md, "=") ||
+		md_extend(id->md, value)
 		;
 }
 
-enum error_state id_add_env_number(indexdescr *eid, const char *variable, const unsigned num) {
+enum error_state id_add_variable_number(indexdescr *id, const char *varname, const unsigned value) {
 	return
-		id_add_string(eid, variable) ||
-		md_extend(eid->md, "=") ||
-		md_extend_number(eid->md, num)
+		id_add(id, varname) ||
+		md_extend(id->md, "=") ||
+		md_extend_number(id->md, value)
 		;
 }
 
-enum error_state id_add_env_http_variables(indexdescr *eid, indexdescr *hid) {
+enum error_state id_add_variables(indexdescr *id, const indexdescr *var, const char *prefix) {
 	char **strp;
-	char *name, *value;
+	char *varname, *value;
 	int i;
 	
-	for (strp = hid->index, i = hid->current; i > 0; strp++, i--) {
+	for (strp = var->index, i = var->current; i > 0; strp++, i--) {
 		value = *strp;
-		name = strsep(&value, ":");
+		varname = strsep(&value, ":");
 		if (value != NULL)
 			if (
-					id_add_string(eid, "HTTP_") ||
-					md_extend(eid->md, str_toupper(name)) ||
-					md_extend(eid->md, "=") ||
-					md_extend(eid->md, startof(value))
+					id_add(id, prefix) ||
+					md_extend(id->md, str_toupper(varname)) ||
+					md_extend(id->md, "=") ||
+					md_extend(id->md, startof(value))
 				)
 				return ERROR_TRUE; // otherwise continue
 	}
@@ -156,15 +155,15 @@ enum error_state id_add_env_http_variables(indexdescr *eid, indexdescr *hid) {
 
 }
 
-char *id_read_variable(indexdescr *id, const char *name) {
+char *id_read_variable(const indexdescr *id, const char *varname) {
 	size_t namelength;
 	char **strp;
 	char *value;
 	int i;
 	
-	namelength = strlen(name);
+	namelength = strlen(varname);
 	for (strp = id->index, i = id->current; i > 0; strp++, i--) {
-		if (strncmp(*strp, name, namelength) == 0) {
+		if (strncmp(*strp, varname, namelength) == 0) {
 			value = *strp + namelength;
 			if (*value == ':')
 				return startof(++value);

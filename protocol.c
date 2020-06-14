@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.2
+mrhttpd v2.4.3
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mrhttpd.h"
-
 
 enum http_code_index {
 	HTTP_200,
@@ -80,8 +79,6 @@ const char *http_file[] = {
 };
 #endif
 
-#define senderror(x) { statusCode = HTTP_ ## x ; goto _senderror; }
-
 enum connection_state http_request(const int sockfd) {
 
 	char *hp; 
@@ -128,7 +125,7 @@ enum connection_state http_request(const int sockfd) {
 	#endif
 
 	// Read request header
-	if (recv_header_with_timeout(sockfd, &requestheaderindex) < 0)
+	if (recv_header_with_timeout(&requestheaderindex, sockfd) < 0)
 		return CONNECTION_CLOSE; // socket is in undefined state
 
 	// Identify first token.
@@ -138,20 +135,23 @@ enum connection_state http_request(const int sockfd) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "%15s  501  \"%s\"", client, method);
 		#endif
-		senderror(501); // method other than GET
+		statusCode = HTTP_501;
+		goto _senderror; // method other than GET
 	}
 	if (hp == NULL) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "%15s  400  \"%s\"", client, method);
 		#endif
-		senderror(400); // no resource
+		statusCode = HTTP_400;
+		goto _senderror; // no resource
 	}
 	resource = strsep(&hp, " ");
 	if (hp == NULL) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "%15s  400  \"%s  %s\"", client, method, resource);
 		#endif
-		senderror(400); // no protocol
+		statusCode = HTTP_400;
+		goto _senderror; // no protocol
 	}
 	protocol = strsep(&hp, " ");
 	#if LOG_LEVEL > 1
@@ -163,14 +163,13 @@ enum connection_state http_request(const int sockfd) {
 		connection_state = CONNECTION_KEEPALIVE;
 		if (connection != NULL && strcmp(connection, "close") == 0)
 			connection_state = CONNECTION_CLOSE;
-	}
-	else if (strcmp(protocol, PROTOCOL_HTTP_1_0) == 0) {
+	} else if (strcmp(protocol, PROTOCOL_HTTP_1_0) == 0) {
 		connection_state = CONNECTION_CLOSE;
 		if (connection != NULL && strcmp(connection, "keep-alive") == 0)
 			connection_state = CONNECTION_KEEPALIVE;
-	}
-	else {
-		senderror(501);
+	} else {
+		statusCode = HTTP_501;
+		goto _senderror;
 	}
 
 	query = resource;
@@ -204,34 +203,69 @@ enum connection_state http_request(const int sockfd) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "%15s  403  \"SEC  %s %s\"", client, resource, protocol);
 		#endif
-		senderror(403); // potential security risk - zero tolerance
+		statusCode = HTTP_403;
+		goto _senderror; // potential security risk - zero tolerance
 	}
 
 	#ifdef CGI_URL
 	if (!strncmp(resource, CGI_URL, strlen(CGI_URL))) { // presence of CGI URL indicates CGI script
-		if ( md_add(&filenamedescr, CGI_DIR) || md_extend(&filenamedescr, resource+strlen(CGI_URL)) )
+		if ( md_add(&filenamedescr, CGI_DIR) || md_extend(&filenamedescr, resource + strlen(CGI_URL)) )
 			goto _senderror500;
 		if (stat(filename, &st)) {
 			#if LOG_LEVEL > 2
-			Log(sockfd, "%15s  404  \"CGI  %s %s\"", client, filename ,query==NULL?"":query);
+			Log(sockfd, "%15s  404  \"CGI  %s %s\"", client, filename, query == NULL ? "" : query);
 			#endif
-			senderror(404);
+			statusCode = HTTP_404;
+			goto _senderror;
 		}
 		if (!S_ISREG(st.st_mode)) {
 			#if LOG_LEVEL > 2
-			Log(sockfd, "%15s  403  \"CGI  %s %s\"", client, filename ,query==NULL?"":query);
+			Log(sockfd, "%15s  403  \"CGI  %s %s\"", client, filename, query == NULL ? "" : query);
 			#endif
-			senderror(403);
+			statusCode = HTTP_403;
+			goto _senderror;
 		}
 		if (access(filename, 1)) {
 			#if LOG_LEVEL > 2
-			Log(sockfd, "%15s  503  \"CGI  %s %s\"", client, filename ,query==NULL?"":query);
+			Log(sockfd, "%15s  503  \"CGI  %s %s\"", client, filename, query == NULL ? "" : query);
 			#endif
-			senderror(503);
+			statusCode = HTTP_503;
+			goto _senderror;
 		}
 		#if LOG_LEVEL > 3
-		Log(sockfd, "%15s  200  \"CGI  %s %s\"", client, filename ,query==NULL?"":query);
+		Log(sockfd, "%15s  000  \"CGI  %s %s\"", client, filename, query == NULL ? "" : query);
 		#endif
+
+		// set up environment of cgi program
+		id_reset(&envindex);
+		id_reset(&replyheaderindex);
+		if (
+			id_add_variable(&envindex, "SERVER_NAME",  SERVER_NAME) ||
+			id_add_variable(&envindex, "SERVER_PORT",  SERVER_PORT_STR) ||
+			id_add_variable(&envindex, "SERVER_SOFTWARE", SERVER_SOFTWARE) ||
+			id_add_variable(&envindex, "SERVER_PROTOCOL", protocol) ||
+			id_add_variable(&envindex, "REQUEST_METHOD", method) ||
+			id_add_variable(&envindex, "SCRIPT_FILENAME", filename) ||
+			id_add_variable(&envindex, "QUERY_STRING", (query == NULL) ? "" : query) ||
+			id_add_variable(&envindex, "REMOTE_ADDR", client) ||
+			id_add_variable_number(&envindex, "REMOTE_PORT", port) ||
+			id_add_variables(&envindex, &requestheaderindex, "HTTP_") ||
+			//set up reply header
+			id_add(&replyheaderindex, protocol) ||
+			md_extend_char(&replyheadermempool, ' ') ||
+			md_extend(&replyheadermempool, http_code[HTTP_200]) ||
+			md_extend_char(&replyheadermempool, '\r') ||
+			id_add(&replyheaderindex, "Server: " SERVER_SOFTWARE "\r") ||
+			id_add(&replyheaderindex, "Connection: close\r") ||
+			md_translate(&replyheadermempool, '\0', '\n')
+		) {
+			#if LOG_LEVEL > 0
+			Log(sockfd, "Memory Error preparing CGI header for %s", filename);
+			#endif
+			statusCode = HTTP_500;
+			goto _sendfatal;
+		}
+				
 		pid_t child_pid = fork();
 		if (child_pid == 0) {
 			// child process continues here
@@ -241,28 +275,6 @@ enum connection_state http_request(const int sockfd) {
 			#if DEBUG & 512
 			Log(sockfd, "CGI Fork Child: Preparing to launch %s", filename);
 			#endif
-			// set up environment of cgi program
-			id_reset(&envindex);
-			id_add_env_string(&envindex, "SERVER_NAME",  SERVER_NAME);
-			id_add_env_string(&envindex, "SERVER_PORT",  SERVER_PORT_STR);
-			id_add_env_string(&envindex, "SERVER_SOFTWARE", SERVER_SOFTWARE);
-			id_add_env_string(&envindex, "SERVER_PROTOCOL", protocol);
-			id_add_env_string(&envindex, "REQUEST_METHOD", method);
-			id_add_env_string(&envindex, "SCRIPT_FILENAME", filename);
-			id_add_env_string(&envindex, "QUERY_STRING", (query == NULL)?"":query);
-			id_add_env_string(&envindex, "REMOTE_ADDR", client);
-			id_add_env_number(&envindex, "REMOTE_PORT", port);
-			id_add_env_http_variables(&envindex, &requestheaderindex);
-			//set up reply header
-			id_reset(&replyheaderindex);
-			id_add_string(&replyheaderindex, protocol);
-			md_extend_char(&replyheadermempool, ' ');
-			md_extend(&replyheadermempool, http_code[HTTP_200]);
-			md_extend_char(&replyheadermempool, '\r');
-			id_add_string(&replyheaderindex, "Server: " SERVER_SOFTWARE "\r");
-			id_add_string(&replyheaderindex, "Connection: close\r");
-			md_translate(&replyheadermempool, '\0', '\n');
-				
 			if (send_with_timeout(sockfd, replyheadermempool.mem, replyheadermempool.current) >= 0 ) {
 				#if DEBUG & 512
 				Log(sockfd, "CGI Fork Child: Reply header sent for %s", filename);
@@ -274,15 +286,19 @@ enum connection_state http_request(const int sockfd) {
 					chdir(CGI_DIR);
 					execve(filename, NULL, env); // should never return
 				}
+				#if DEBUG & 512
+				Log(sockfd, "CGI Fork Child: Failed to launch %s", filename);
+				#endif
+				exit(-1); // exit child process
 			}
 			#if DEBUG & 512
-			Log(sockfd, "CGI Fork Child: Failed to launch %s", filename);
+			Log(sockfd, "CGI Fork Child: Failed to send header for %s", filename);
 			#endif
-			exit(-1); // some error, exit child process
+			exit(-1); // exit child process
 		}
 		// parent process continues here
 		if (child_pid == -1)
-			senderror(500); // fork error
+			goto _senderror500; // fork error
 		// unfortunately it turns out it is better to wait for the child to exit
 		// since otherwise the connection hangs on rare occasions
 		#if DEBUG & 256
@@ -299,11 +315,13 @@ enum connection_state http_request(const int sockfd) {
 	if ( md_add(&filenamedescr, DOC_DIR) || md_extend(&filenamedescr, resource) ) 
 		goto _senderror500;
 
+	statusCode = HTTP_404;
+
 	if (stat(filename, &st)) {
 		#if LOG_LEVEL > 2
 		Log(sockfd, "%15s  404  \"STAT %s\"", client, filename);
 		#endif
-		senderror(404);
+		goto _senderror;
 	}
 	
 	#ifdef DEFAULT_INDEX
@@ -314,15 +332,15 @@ enum connection_state http_request(const int sockfd) {
 			// Redirecting is difficult due to hex encoding
 			// and query string having been lost at this point.
 			// So let's just admit defeat:
-			senderror(404);
+		goto _senderror;
 		}
 		if (md_extend(&filenamedescr, DEFAULT_INDEX) != 0)
-			senderror(500);
+			goto _senderror500;
 		if (stat(filename, &st) < 0) {
 			#if LOG_LEVEL > 2
 			Log(sockfd, "%15s  404  \"INST %s\"", client, filename);
 			#endif
-			senderror(404);
+		goto _senderror;
 		}
 	}
 	#endif
@@ -331,18 +349,18 @@ enum connection_state http_request(const int sockfd) {
 		#if LOG_LEVEL > 2
 		Log(sockfd, "%15s  404  \"REGF %s\"", client, filename);
 		#endif
-		senderror(404);
+		goto _senderror;
 	}
 
 	if ((fd = open(filename, O_RDONLY)) < 0) {
 		#if LOG_LEVEL > 2
 		Log(sockfd, "%15s  404  \"OPEN %s\"", client, filename);
 		#endif
-		senderror(404);
+		goto _senderror;
 	}
 
 	#if LOG_LEVEL > 3
-	Log(sockfd, "%15s  200  \"OPEN %s\"", client, filename);
+	Log(sockfd, "%15s  000  \"OPEN %s\"", client, filename);
 	#endif
 
 	statusCode = HTTP_200;
@@ -351,28 +369,29 @@ _sendfile:
 
 	id_reset(&replyheaderindex);
 	if (
-		id_add_string(&replyheaderindex, protocol) ||
+		id_add(&replyheaderindex, protocol) ||
 		md_extend_char(&replyheadermempool, ' ') ||
 		md_extend(&replyheadermempool, http_code[statusCode]) ||
 		md_extend_char(&replyheadermempool, '\r') ||
-		id_add_string(&replyheaderindex, "Server: " SERVER_SOFTWARE "\r") ||
-		id_add_string(&replyheaderindex, "Content-Length: ") ||
+		id_add(&replyheaderindex, "Server: " SERVER_SOFTWARE "\r") ||
+		id_add(&replyheaderindex, "Content-Length: ") ||
 		md_extend_number(&replyheadermempool, (unsigned) st.st_size) ||
 		md_extend_char(&replyheadermempool, '\r') ||
-		id_add_string(&replyheaderindex, "Content-Type: ") ||
+		id_add(&replyheaderindex, "Content-Type: ") ||
 		md_extend(&replyheadermempool, mimetype(filename)) ||
 		md_extend_char(&replyheadermempool, '\r') ||
 		#ifdef PRAGMA
-		id_add_string(&replyheaderindex, "Pragma: " PRAGMA "\r") ||
+		id_add(&replyheaderindex, "Pragma: " PRAGMA "\r") ||
 		#endif
-		id_add_string(&replyheaderindex, (connection_state == CONNECTION_KEEPALIVE) ? "Connection: Keep-Alive\r" : "Connection: close\r") ||
-		id_add_string(&replyheaderindex, "\r") ||
+		id_add(&replyheaderindex, (connection_state == CONNECTION_KEEPALIVE) ? "Connection: Keep-Alive\r" : "Connection: close\r") ||
+		id_add(&replyheaderindex, "\r") ||
 		md_translate(&replyheadermempool, '\0', '\n')
 	) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "Memory Error preparing reply header for %s", resource);
 		#endif
-		goto _sendfatal500;
+		statusCode = HTTP_500;
+		goto _sendfatal;
 	}
 		
 	#ifdef TCP_CORK // Linux specific
@@ -393,6 +412,7 @@ _sendfile:
 	return connection_state;
 
 _senderror500:
+
 	statusCode = HTTP_500;
 
 _senderror:
@@ -415,25 +435,24 @@ _senderror:
 	
 	goto _sendfile; // send the standard error file
 	#endif
-	
-_sendfatal500:
-	statusCode = HTTP_500;
 
+	// fall through if SERVER_DOCS is not defined
+	
 _sendfatal:
 
 	id_reset(&replyheaderindex);
 	if (
-		id_add_string(&replyheaderindex, protocol) ||
+		id_add(&replyheaderindex, protocol) ||
 		md_extend_char(&replyheadermempool, ' ') ||
 		md_extend(&replyheadermempool, http_code[statusCode]) ||
 		md_extend_char(&replyheadermempool, '\r') ||
-		id_add_string(&replyheaderindex, "Server: " SERVER_SOFTWARE "\r") ||
-		id_add_string(&replyheaderindex, "Content-Length: 0\r") ||
+		id_add(&replyheaderindex, "Server: " SERVER_SOFTWARE "\r") ||
+		id_add(&replyheaderindex, "Content-Length: 0\r") ||
 		#ifdef PRAGMA
-		id_add_string(&replyheaderindex, "Pragma: " PRAGMA "\r") ||
+		id_add(&replyheaderindex, "Pragma: " PRAGMA "\r") ||
 		#endif
-		id_add_string(&replyheaderindex, (connection_state == CONNECTION_KEEPALIVE) ? "Connection: Keep-Alive\r" : "Connection: close\r") ||
-		id_add_string(&replyheaderindex, "\r") ||
+		id_add(&replyheaderindex, (connection_state == CONNECTION_KEEPALIVE) ? "Connection: Keep-Alive\r" : "Connection: close\r") ||
+		id_add(&replyheaderindex, "\r") ||
 		md_translate(&replyheadermempool, '\0', '\n')
 	) {
 		#if LOG_LEVEL > 0

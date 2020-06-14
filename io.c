@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.2
+mrhttpd v2.4.3
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -41,7 +41,7 @@ void set_timeout(const int sockfd) {
 
 #define RECV_BUFLEN 2047
 
-int recv_header_with_timeout(const int sockfd, indexdescr *id) {
+int recv_header_with_timeout(indexdescr *id, const int sockfd) {
 	char buf[RECV_BUFLEN + 1];
 	ssize_t numbytes; 
 	ssize_t received;
@@ -99,7 +99,7 @@ _parse:
 	}
 	else if (cursor != delim) { // line is not empty
 		*delim = '\0'; // make it a zero terminated string
-		if (id_add_string(id, cursor)) // add string to header array
+		if (id_add(id, cursor)) // add string to header array
 		  return -1; // header array full or whatever
 		#if DEBUG & 32
 		Log(sockfd, "RHWT: parser found header: %s", cursor);

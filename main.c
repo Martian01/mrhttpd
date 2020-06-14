@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.2
+mrhttpd v2.4.3
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -166,7 +166,7 @@ void *serverthread(void *arg) {
 	// Detach thread - it will terminate on its own
 	pthread_detach(pthread_self());
 
-	int sockfd = (int)(long)arg; // Non-portable kludge to implement call-by-value;
+	const int sockfd = (int)(long)arg; // Non-portable kludge to implement call-by-value;
 
 	#if DEBUG & 1
 	Log(sockfd, "Debug: worker thread starting.");

@@ -97,4 +97,10 @@ mrhttpd v2.4.2
 ==============
 released 2020-06-13
 Maintenance release 
-Fix an unexplainable code disappearance from the previous release
+Fix an unexplained code disappearance
+
+mrhttpd v2.4.3
+==============
+released 2020-06-14
+Maintenance release 
+Fix more of the unexplained code disappearance, housekeeping
