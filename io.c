@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.1
+mrhttpd v2.4.2
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -50,7 +50,7 @@ int recv_header_with_timeout(const int sockfd, indexdescr *id) {
 	char *cursor;
 	char *delim;
 
-	id_init(id);
+	id_reset(id);
 	numbytes = 0;
 
 _read:

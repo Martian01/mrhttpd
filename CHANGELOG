@@ -81,7 +81,7 @@ Added support for Docker
 Docker image on Docker Hub released: dockahdockah/mrhttpd
 Bug fix for high load scenarios (socket descriptors above 1023)
 
-mrhttpd v2.4.1
+mrhttpd v2.4.0
 ==============
 released 2020-06-13
 Maintenance release 
@@ -92,3 +92,9 @@ mrhttpd v2.4.1
 released 2020-06-13
 Maintenance release 
 Hardening of memory management against out-of-memory situations
+
+mrhttpd v2.4.2
+==============
+released 2020-06-13
+Maintenance release 
+Fix an unexplainable code disappearance from the previous release

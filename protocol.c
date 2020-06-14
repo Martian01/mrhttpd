@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.1
+mrhttpd v2.4.2
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -121,7 +121,7 @@ enum connection_state http_request(const int sockfd) {
 	#if LOG_LEVEL > 0 || defined(CGI_URL)
 	struct sockaddr_in sa;
 	int addrlen = sizeof(struct sockaddr_in);
-	getpeername(sockfd, (struct sockaddr *)&sa, &addrlen);
+	getpeername(sockfd, (struct sockaddr *)&sa, (socklen_t *) &addrlen);
 	char client[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &sa.sin_addr, client, INET_ADDRSTRLEN);
 	int port = ntohs(sa.sin_port);
@@ -242,7 +242,7 @@ enum connection_state http_request(const int sockfd) {
 			Log(sockfd, "CGI Fork Child: Preparing to launch %s", filename);
 			#endif
 			// set up environment of cgi program
-			id_init(&envindex);
+			id_reset(&envindex);
 			id_add_env_string(&envindex, "SERVER_NAME",  SERVER_NAME);
 			id_add_env_string(&envindex, "SERVER_PORT",  SERVER_PORT_STR);
 			id_add_env_string(&envindex, "SERVER_SOFTWARE", SERVER_SOFTWARE);
@@ -254,7 +254,7 @@ enum connection_state http_request(const int sockfd) {
 			id_add_env_number(&envindex, "REMOTE_PORT", port);
 			id_add_env_http_variables(&envindex, &requestheaderindex);
 			//set up reply header
-			id_init(&replyheaderindex);
+			id_reset(&replyheaderindex);
 			id_add_string(&replyheaderindex, protocol);
 			md_extend_char(&replyheadermempool, ' ');
 			md_extend(&replyheadermempool, http_code[HTTP_200]);
@@ -349,7 +349,7 @@ enum connection_state http_request(const int sockfd) {
 
 _sendfile:
 
-	id_init(&replyheaderindex);
+	id_reset(&replyheaderindex);
 	if (
 		id_add_string(&replyheaderindex, protocol) ||
 		md_extend_char(&replyheadermempool, ' ') ||
@@ -421,7 +421,7 @@ _sendfatal500:
 
 _sendfatal:
 
-	id_init(&replyheaderindex);
+	id_reset(&replyheaderindex);
 	if (
 		id_add_string(&replyheaderindex, protocol) ||
 		md_extend_char(&replyheadermempool, ' ') ||

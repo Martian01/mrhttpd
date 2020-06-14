@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.1
+mrhttpd v2.4.2
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -47,7 +47,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "config.h"
 
-#define SERVER_SOFTWARE   "mrhttpd/2.4.1"
+#define SERVER_SOFTWARE   "mrhttpd/2.4.2"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"
@@ -88,13 +88,13 @@ ssize_t mysendfile(const int, const int, ssize_t);
 ssize_t sendfile_with_timeout(const int, const int, const ssize_t);
 
 // mem
-void md_init(memdescr *);
+void md_reset(memdescr *);
 enum error_state md_add(memdescr *, const char *);
 enum error_state md_extend(memdescr *, const char *);
 enum error_state md_extend_char(memdescr *, const char);
 enum error_state md_extend_number(memdescr *, const unsigned);
 enum error_state md_translate(memdescr *, const char, const char);
-void id_init(indexdescr *);
+void id_reset(indexdescr *);
 enum error_state id_add_string(indexdescr *, const char *);
 enum error_state id_add_env_string(indexdescr *, const char *, const char *);
 enum error_state id_add_env_number(indexdescr *, const char *, const unsigned);

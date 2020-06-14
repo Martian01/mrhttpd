@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.1
+mrhttpd v2.4.2
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // In a way, memdescr and indexdescr are class definitions (in mrhttpd.h),
 // and the functions in this include are their instance methods.
 
-void md_init(memdescr *md) {
+void md_reset(memdescr *md) {
 	md->current = 0;
 }
 
@@ -97,8 +97,8 @@ enum error_state md_translate(memdescr *md, const char from, const char to) {
 	return ERROR_FALSE; // success
 }
 
-void id_init(indexdescr *id) {
-	md_init(id->md);
+void id_reset(indexdescr *id) {
+	md_reset(id->md);
 	id->current = 0;
 }
 
@@ -116,7 +116,6 @@ enum error_state id_add_string(indexdescr *id, const char *string) {
 		return ERROR_TRUE; // memory allocation failed
 
 	id->index[id->current++] = id->md->mem + target;
-	id->index[id->current] = NULL;
 	return ERROR_FALSE; // success
 }
 
@@ -139,8 +138,9 @@ enum error_state id_add_env_number(indexdescr *eid, const char *variable, const 
 enum error_state id_add_env_http_variables(indexdescr *eid, indexdescr *hid) {
 	char **strp;
 	char *name, *value;
+	int i;
 	
-	for (strp = hid->index; *strp != NULL; strp++) {
+	for (strp = hid->index, i = hid->current; i > 0; strp++, i--) {
 		value = *strp;
 		name = strsep(&value, ":");
 		if (value != NULL)
@@ -156,18 +156,18 @@ enum error_state id_add_env_http_variables(indexdescr *eid, indexdescr *hid) {
 
 }
 
-char *id_read_variable(indexdescr *id, const char *variable) {
-	size_t vlen;
+char *id_read_variable(indexdescr *id, const char *name) {
+	size_t namelength;
 	char **strp;
 	char *value;
+	int i;
 	
-	vlen = strlen(variable);
-	for (strp = id->index; *strp != NULL; strp++) {
-		if (strncmp(*strp, variable, vlen) == 0) {
-			value = *strp + vlen;
-			if (*value == ':') {
+	namelength = strlen(name);
+	for (strp = id->index, i = id->current; i > 0; strp++, i--) {
+		if (strncmp(*strp, name, namelength) == 0) {
+			value = *strp + namelength;
+			if (*value == ':')
 				return startof(++value);
-			}
 		}
 	}
 	return NULL; // variable not found
