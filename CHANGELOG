@@ -79,7 +79,6 @@ Functional release
 Added configuration option for detaching
 Added support for Docker
 Docker image on Docker Hub released: dockahdockah/mrhttpd
-Bug fix for high load scenarios (socket descriptors above 1023)
 
 mrhttpd v2.4.0
 ==============
@@ -103,4 +102,4 @@ mrhttpd v2.4.3
 ==============
 released 2020-06-14
 Maintenance release 
-Fix more of the unexplained code disappearance, housekeeping
+Fix more of the unexplained code disappearance, housekeeping, renaming
