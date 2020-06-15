@@ -93,7 +93,7 @@ enum error_state mp_add(mempool *, const char *);
 enum error_state mp_extend(mempool *, const char *);
 enum error_state mp_extend_char(mempool *, const char);
 enum error_state mp_extend_number(mempool *, const unsigned);
-enum error_state mp_replace(mempool *, const char, const char);
+void mp_replace(mempool *, const char, const char);
 void sp_reset(stringpool *);
 enum error_state sp_add(stringpool *, const char *);
 enum error_state sp_add_variable(stringpool *, const char *, const char *);

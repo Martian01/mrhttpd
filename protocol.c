@@ -39,25 +39,6 @@ enum http_code_index {
 	HTTP_503,
 };
 
-const char *http_code[] = {
-	"200 OK",
-	"201 Created",
-	"202 Accepted",
-	"204 No Content",
-	"300 Multiple Choices",
-	"301 Moved Permanently",
-	"302 Moved Temporarily",
-	"304 Not Modified",
-	"400 Bad Request",
-	"401 Unauthorized",
-	"403 Forbidden",
-	"404 Not Found",
-	"500 Internal Server Error",
-	"501 Not Implemented",
-	"502 Bad Gateway",
-	"503 Service Unavailable"
-};
-
 #ifdef SERVER_DOCS
 const char *http_file[] = {
 	SERVER_DOCS "/200.html",
@@ -78,6 +59,30 @@ const char *http_file[] = {
 	SERVER_DOCS "/503.html"
 };
 #endif
+
+const char *http_code_string[] = {
+	"200 OK\r",
+	"201 Created\r",
+	"202 Accepted\r",
+	"204 No Content\r",
+	"300 Multiple Choices\r",
+	"301 Moved Permanently\r",
+	"302 Moved Temporarily\r",
+	"304 Not Modified\r",
+	"400 Bad Request\r",
+	"401 Unauthorized\r",
+	"403 Forbidden\r",
+	"404 Not Found\r",
+	"500 Internal Server Error\r",
+	"501 Not Implemented\r",
+	"502 Bad Gateway\r",
+	"503 Service Unavailable\r"
+};
+
+const char *connection_string[] = {
+	"Connection: keep-alive\r",
+	"Connection: close\r"
+};
 
 enum connection_state http_request(const int sockfd) {
 
@@ -253,17 +258,16 @@ enum connection_state http_request(const int sockfd) {
 			//set up reply header
 			sp_add(&replyheaderpool, protocol) ||
 			mp_extend_char(&replyheadermempool, ' ') ||
-			mp_extend(&replyheadermempool, http_code[HTTP_200]) ||
-			mp_extend_char(&replyheadermempool, '\r') ||
+			mp_extend(&replyheadermempool, http_code_string[HTTP_200]) ||
 			sp_add(&replyheaderpool, "Server: " SERVER_SOFTWARE "\r") ||
-			sp_add(&replyheaderpool, "Connection: close\r") ||
-			mp_replace(&replyheadermempool, '\0', '\n')
+			sp_add(&replyheaderpool, connection_string[CONNECTION_CLOSE])
 		) {
 			#if LOG_LEVEL > 0
 			Log(sockfd, "Memory Error preparing CGI header for %s", filename);
 			#endif
 			goto _senderror500;
 		}
+		mp_replace(&replyheadermempool, '\0', '\n');
 				
 		pid_t child_pid = fork();
 		if (child_pid == 0) {
@@ -370,8 +374,7 @@ _sendfile:
 	if (
 		sp_add(&replyheaderpool, protocol) ||
 		mp_extend_char(&replyheadermempool, ' ') ||
-		mp_extend(&replyheadermempool, http_code[statusCode]) ||
-		mp_extend_char(&replyheadermempool, '\r') ||
+		mp_extend(&replyheadermempool, http_code_string[statusCode]) ||
 		sp_add(&replyheaderpool, "Server: " SERVER_SOFTWARE "\r") ||
 		sp_add(&replyheaderpool, "Content-Length: ") ||
 		mp_extend_number(&replyheadermempool, (unsigned) st.st_size) ||
@@ -382,9 +385,8 @@ _sendfile:
 		#ifdef PRAGMA
 		sp_add(&replyheaderpool, "Pragma: " PRAGMA "\r") ||
 		#endif
-		sp_add(&replyheaderpool, (connection_state == CONNECTION_KEEPALIVE) ? "Connection: Keep-Alive\r" : "Connection: close\r") ||
-		sp_add(&replyheaderpool, "\r") ||
-		mp_replace(&replyheadermempool, '\0', '\n')
+		sp_add(&replyheaderpool, connection_string[connection_state]) ||
+		sp_add(&replyheaderpool, "\r")
 	) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "Memory Error preparing reply header for %s", resource);
@@ -392,6 +394,7 @@ _sendfile:
 		statusCode = HTTP_500;
 		goto _sendfatal;
 	}
+	mp_replace(&replyheadermempool, '\0', '\n');
 		
 	#ifdef TCP_CORK // Linux specific
 	int option = 1;
@@ -443,22 +446,21 @@ _sendfatal:
 	if (
 		sp_add(&replyheaderpool, protocol) ||
 		mp_extend_char(&replyheadermempool, ' ') ||
-		mp_extend(&replyheadermempool, http_code[statusCode]) ||
-		mp_extend_char(&replyheadermempool, '\r') ||
+		mp_extend(&replyheadermempool, http_code_string[statusCode]) ||
 		sp_add(&replyheaderpool, "Server: " SERVER_SOFTWARE "\r") ||
 		sp_add(&replyheaderpool, "Content-Length: 0\r") ||
 		#ifdef PRAGMA
 		sp_add(&replyheaderpool, "Pragma: " PRAGMA "\r") ||
 		#endif
-		sp_add(&replyheaderpool, (connection_state == CONNECTION_KEEPALIVE) ? "Connection: Keep-Alive\r" : "Connection: close\r") ||
-		sp_add(&replyheaderpool, "\r") ||
-		mp_replace(&replyheadermempool, '\0', '\n')
+		sp_add(&replyheaderpool, connection_string[connection_state]) ||
+		sp_add(&replyheaderpool, "\r")
 	) {
 		#if LOG_LEVEL > 0
 		Log(sockfd, "Memory Error preparing fatal response %d", statusCode);
 		#endif
 		return CONNECTION_CLOSE;
 	}
+	mp_replace(&replyheadermempool, '\0', '\n');
 		
 	send_with_timeout(sockfd, replyheadermempool.mem, replyheadermempool.current);
 

@@ -31,8 +31,6 @@ int main(void) {
 	struct passwd *pw;
 	pthread_t thread_id;
 
-	//openlog("mrhttpd", 0, LOG_DAEMON);
-
 	// Obtain master listen socket
 	if ((master_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		puts("Could not create a socket, exiting");
@@ -42,14 +40,6 @@ int main(void) {
 	// Allow re-use of port & address
 	rc = 1;
 	setsockopt(master_fd, SOL_SOCKET, SO_REUSEADDR, (void *) &rc, sizeof(rc));
-
-	#if 0
-	// Make socket non-blocking
-	if (set_nonblocking(master_fd) < 0) {
-		puts("Could not make socket nonblocking, exiting");
-		exit(1);
-	}
-	#endif
 
 	local_addr.sin_family = AF_INET;
 	local_addr.sin_port = htons(SERVER_PORT);

@@ -86,14 +86,13 @@ enum error_state mp_extend_number(mempool *mp, const unsigned num) {
 
 }
 
-enum error_state mp_replace(mempool *mp, const char from, const char to) {
+void mp_replace(mempool *mp, const char from, const char to) {
 	char *cp;
 	int i;
 	
 	for (cp = mp->mem, i = mp->current; i > 0; cp++, i--)
 		if (*cp == from)
 		  *cp = to;
-	return ERROR_FALSE; // success
 }
 
 void sp_reset(stringpool *sp) {
