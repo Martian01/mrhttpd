@@ -2,7 +2,7 @@
 #
 # This scripts checks the mrhttpd configuration and generates defaults
 #
-# mrhttpd v2.4.3
+# mrhttpd v2.4.4
 # Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 if [ -z "$SYSTEM_USER" ]; then
@@ -80,6 +80,8 @@ else
 fi
 if [ -z "$PRAGMA" ]; then
   _PRAGMA="missing, OK"
+else
+  _PRAGMA=$PRAGMA
 fi
 if [ -z "$LOG_LEVEL" ]; then
   _LOG_LEVEL="missing, default: 0"
