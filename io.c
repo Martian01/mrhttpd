@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.4
+mrhttpd v2.4.5
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -131,15 +131,13 @@ _parse:
 		memmove(buf, cursor, numbytes);
 		buf[32] = '\0'; // hack for logging purposes only
 		Log(sockfd, "RHWT: data past header: numbytes=%#x, data=%s", numbytes, buf );
-		return 0;
 	} else { // spot landing: no data left in buffer
 		numbytes = 0; // initialize the buffer
 		Log(sockfd, "RHWT: spot landing (no data past header).");
-		return 0;
 	}
 	#endif
 
-	return 0; // assume success
+	return sp->current > 0 ? 0 : -1; // success if and only if there is a non-empty header line
 }
 
 ssize_t send_with_timeout(const int sockfd, const char *buf, const ssize_t len) {

@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.4
+mrhttpd v2.4.5
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or

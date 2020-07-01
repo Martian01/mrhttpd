@@ -109,3 +109,9 @@ mrhttpd v2.4.4
 released 2020-06-17
 Maintenance release 
 Minor refactoring
+
+mrhttpd v2.4.5
+==============
+released 2020-07-01
+Maintenance release 
+Bug fix for rare segmentation fault (triggered by broken HTTP header)
