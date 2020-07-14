@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mrhttpd.h"
 
-enum httpCodeIndex {
+enum HttpCodeIndex {
 	HTTP_200,
 	HTTP_201,
 	HTTP_202,
@@ -84,7 +84,7 @@ const char *connectionString[] = {
 	"Connection: close\r"
 };
 
-enum connectionState httpRequest(const int socket) {
+enum ConnectionState httpRequest(const int socket) {
 
 	char *hp; 
 	char *method; 
@@ -97,28 +97,28 @@ enum connectionState httpRequest(const int socket) {
 	
 	int statusCode;
 	int fd;
-	enum connectionState connectionState = CONNECTION_CLOSE;
+	enum ConnectionState connectionState = CONNECTION_CLOSE;
 
 	char fileNameBuf[512];
-	memPool fileNamePool = { sizeof(fileNameBuf), 0, fileNameBuf };
+	MemPool fileNamePool = { sizeof(fileNameBuf), 0, fileNameBuf };
 	char *fileName = fileNameBuf;
 
 	char generalPurposeBuf[2048];
-	memPool generalPurposeMemPool = { sizeof(generalPurposeBuf), 0, generalPurposeBuf };
+	MemPool generalPurposeMemPool = { sizeof(generalPurposeBuf), 0, generalPurposeBuf };
 
 	char requestHeaderBuf[2048];
-	memPool requestHeaderMemPool = { sizeof(requestHeaderBuf), 0, requestHeaderBuf };
+	MemPool requestHeaderMemPool = { sizeof(requestHeaderBuf), 0, requestHeaderBuf };
 	char *requestHeader[64];
-	stringPool requestHeaderPool = { sizeof(requestHeader), 0, requestHeader, &requestHeaderMemPool };
+	StringPool requestHeaderPool = { sizeof(requestHeader), 0, requestHeader, &requestHeaderMemPool };
 
 	char replyHeaderBuf[512];
-	memPool replyHeaderMemPool = { sizeof(replyHeaderBuf), 0, replyHeaderBuf };
+	MemPool replyHeaderMemPool = { sizeof(replyHeaderBuf), 0, replyHeaderBuf };
 	char *replyHeader[16];
-	stringPool replyHeaderPool = { sizeof(replyHeader), 0, replyHeader, &replyHeaderMemPool };
+	StringPool replyHeaderPool = { sizeof(replyHeader), 0, replyHeader, &replyHeaderMemPool };
 
 	#ifdef CGI_PATH
 	char *env[96];
-	stringPool envPool = { sizeof(env), 0, env, &generalPurposeMemPool };
+	StringPool envPool = { sizeof(env), 0, env, &generalPurposeMemPool };
 	#endif
 
 	#if LOG_LEVEL > 0 || defined(CGI_PATH)
@@ -188,7 +188,7 @@ enum connectionState httpRequest(const int socket) {
 	#ifdef QUERY_HACK
 	char newQuery[512];
 	char newResource[512];
-	memPool newResourceMemPool = { sizeof(newResource), 0, newResource };
+	MemPool newResourceMemPool = { sizeof(newResource), 0, newResource };
 	
 	if ( query != NULL )
 		if ( *query != '\0' )

@@ -54,22 +54,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ESTRANGE 1024
 
-enum errorState { ERROR_FALSE, ERROR_TRUE };
+enum ErrorState { ERROR_FALSE, ERROR_TRUE };
 
-enum connectionState { CONNECTION_KEEPALIVE, CONNECTION_CLOSE };
+enum ConnectionState { CONNECTION_KEEPALIVE, CONNECTION_CLOSE };
 
 typedef struct {
 	int size;
 	int current;
 	char *mem;
-} memPool;
+} MemPool;
 
 typedef struct {
 	int size;
 	int current;
 	char **strings;
-	memPool *mp;
-} stringPool;
+	MemPool *mp;
+} StringPool;
 
 // main
 int main(void);
@@ -78,32 +78,32 @@ void sigtermHandler(const int);
 void sigchldHandler(const int);
 
 // protocol
-enum connectionState httpRequest(const int);
+enum ConnectionState httpRequest(const int);
 
 // io
 void setTimeout(const int);
-int receiveHeader(const int, stringPool *, memPool *);
-ssize_t sendMemPool(const int, const memPool *);
+int receiveHeader(const int, StringPool *, MemPool *);
+ssize_t sendMemPool(const int, const MemPool *);
 ssize_t sendBuffer(const int, const char *, const ssize_t);
 ssize_t sendFile(const int, const int, const ssize_t);
 ssize_t receiveFile(const int, const int, const ssize_t);
 ssize_t pipeStream(const int, const int, ssize_t);
 
 // mem
-void memPoolReset(memPool *);
-enum errorState memPoolAdd(memPool *, const char *);
-enum errorState memPoolExtend(memPool *, const char *);
-enum errorState memPoolExtendChar(memPool *, const char);
-enum errorState memPoolExtendNumber(memPool *, const unsigned);
-void memPoolReplace(memPool *, const char, const char);
-int memPoolLineBreak(const memPool *, const int);
+void memPoolReset(MemPool *);
+enum ErrorState memPoolAdd(MemPool *, const char *);
+enum ErrorState memPoolExtend(MemPool *, const char *);
+enum ErrorState memPoolExtendChar(MemPool *, const char);
+enum ErrorState memPoolExtendNumber(MemPool *, const unsigned);
+void memPoolReplace(MemPool *, const char, const char);
+int memPoolLineBreak(const MemPool *, const int);
 
-void stringPoolReset(stringPool *);
-enum errorState stringPoolAdd(stringPool *, const char *);
-enum errorState stringPoolAddVariable(stringPool *, const char *, const char *);
-enum errorState stringPoolAddVariableNumber(stringPool *, const char *, const unsigned);
-enum errorState stringPoolAddVariables(stringPool *, const stringPool *, const char*);
-char *stringPoolReadVariable(const stringPool *, const char *);
+void stringPoolReset(StringPool *);
+enum ErrorState stringPoolAdd(StringPool *, const char *);
+enum ErrorState stringPoolAddVariable(StringPool *, const char *, const char *);
+enum ErrorState stringPoolAddVariableNumber(StringPool *, const char *, const unsigned);
+enum ErrorState stringPoolAddVariables(StringPool *, const StringPool *, const char*);
+char *stringPoolReadVariable(const StringPool *, const char *);
 
 // util
 extern FILE *logFile;
@@ -112,8 +112,8 @@ void LogClose(const int);
 void Log(const int, const char *, ...);
 const char *mimeType(const char *);
 int hexDigit(const char);
-enum errorState urlDecode(const char *, char *, size_t);
-enum errorState fileNameEncode(const char *, char *, size_t);
+enum ErrorState urlDecode(const char *, char *, size_t);
+enum ErrorState fileNameEncode(const char *, char *, size_t);
 char *strToLower(char *);
 char *strToUpper(char *);
 char *startOf(char *);

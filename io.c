@@ -39,7 +39,7 @@ void setTimeout(const int socket) {
 	setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
 }
 
-int receiveHeader(const int socket, stringPool *headerPool, memPool *buffer) {
+int receiveHeader(const int socket, StringPool *headerPool, MemPool *buffer) {
 	ssize_t received;
 	int cursor;
 	int delim;
@@ -123,7 +123,7 @@ _parseNextLine:
 	return headerPool->current > 0 ? 0 : -1; // success if and only if there is a non-empty header line
 }
 
-ssize_t sendMemPool(const int socket, const memPool *mp) {
+ssize_t sendMemPool(const int socket, const MemPool *mp) {
 	return sendBuffer(socket, mp->mem, mp->current);
 }
 

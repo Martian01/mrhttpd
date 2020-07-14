@@ -30,14 +30,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // This may appear rigid, but it guarantees the absence of memory leaks.
 
-// In a way, memPool and stringPool are class definitions (in mrhttpd.h),
+// In a way, MemPool and StringPool are class definitions (in mrhttpd.h),
 // and the functions in this include are their instance methods.
 
-void memPoolReset(memPool *mp) {
+void memPoolReset(MemPool *mp) {
 	mp->current = 0;
 }
 
-enum errorState memPoolAdd(memPool *mp, const char *string) {
+enum ErrorState memPoolAdd(MemPool *mp, const char *string) {
 	int added;
 
 	if (string == NULL)
@@ -52,7 +52,7 @@ enum errorState memPoolAdd(memPool *mp, const char *string) {
 	return ERROR_FALSE; // success
 }
 
-enum errorState memPoolExtend(memPool *mp, const char *string) {
+enum ErrorState memPoolExtend(MemPool *mp, const char *string) {
 	int target, added;
 
 	if (string == NULL)
@@ -68,7 +68,7 @@ enum errorState memPoolExtend(memPool *mp, const char *string) {
 	return ERROR_FALSE; // success
 }
 
-enum errorState memPoolExtendChar(memPool *mp, const char c) {
+enum ErrorState memPoolExtendChar(MemPool *mp, const char c) {
 	int target;
 
 	target = (mp->current == 0) ? 0 : (mp->current - 1);
@@ -80,7 +80,7 @@ enum errorState memPoolExtendChar(memPool *mp, const char c) {
 	return ERROR_FALSE; // success
 }
 
-enum errorState memPoolExtendNumber(memPool *mp, const unsigned num) {
+enum ErrorState memPoolExtendNumber(MemPool *mp, const unsigned num) {
 	static char digit[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 	
 	if (num < 10)
@@ -90,7 +90,7 @@ enum errorState memPoolExtendNumber(memPool *mp, const unsigned num) {
 
 }
 
-void memPoolReplace(memPool *mp, const char from, const char to) {
+void memPoolReplace(MemPool *mp, const char from, const char to) {
 	char *cp;
 	int i;
 	
@@ -99,7 +99,7 @@ void memPoolReplace(memPool *mp, const char from, const char to) {
 		  *cp = to;
 }
 
-int memPoolLineBreak(const memPool *mp, const int start) {
+int memPoolLineBreak(const MemPool *mp, const int start) {
 	int i;
 	
 	for (i = start; i < mp->current - 1; i++)
@@ -108,12 +108,12 @@ int memPoolLineBreak(const memPool *mp, const int start) {
 	return -1;
 }
 
-void stringPoolReset(stringPool *sp) {
+void stringPoolReset(StringPool *sp) {
 	memPoolReset(sp->mp);
 	sp->current = 0;
 }
 
-enum errorState stringPoolAdd(stringPool *sp, const char *string) {
+enum ErrorState stringPoolAdd(StringPool *sp, const char *string) {
 	int target;
 
 	if (string == NULL)
@@ -130,7 +130,7 @@ enum errorState stringPoolAdd(stringPool *sp, const char *string) {
 	return ERROR_FALSE; // success
 }
 
-enum errorState stringPoolAddVariable(stringPool *sp, const char *varName, const char *value) {
+enum ErrorState stringPoolAddVariable(StringPool *sp, const char *varName, const char *value) {
 	return
 		stringPoolAdd(sp, varName) ||
 		memPoolExtend(sp->mp, "=") ||
@@ -138,7 +138,7 @@ enum errorState stringPoolAddVariable(stringPool *sp, const char *varName, const
 		;
 }
 
-enum errorState stringPoolAddVariableNumber(stringPool *sp, const char *varName, const unsigned value) {
+enum ErrorState stringPoolAddVariableNumber(StringPool *sp, const char *varName, const unsigned value) {
 	return
 		stringPoolAdd(sp, varName) ||
 		memPoolExtend(sp->mp, "=") ||
@@ -146,7 +146,7 @@ enum errorState stringPoolAddVariableNumber(stringPool *sp, const char *varName,
 		;
 }
 
-enum errorState stringPoolAddVariables(stringPool *sp, const stringPool *var, const char *prefix) {
+enum ErrorState stringPoolAddVariables(StringPool *sp, const StringPool *var, const char *prefix) {
 	char **strp;
 	char *varName, *value;
 	int i;
@@ -167,7 +167,7 @@ enum errorState stringPoolAddVariables(stringPool *sp, const stringPool *var, co
 
 }
 
-char *stringPoolReadVariable(const stringPool *sp, const char *varName) {
+char *stringPoolReadVariable(const StringPool *sp, const char *varName) {
 	size_t nameLength;
 	char **strp;
 	char *value;

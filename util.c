@@ -215,7 +215,7 @@ int hexDigit(const char c) {
 	return -1;
 }
 
-enum errorState urlDecode(const char *in, char *out, size_t n) {
+enum ErrorState urlDecode(const char *in, char *out, size_t n) {
 	if (in == NULL)
 		return ERROR_FALSE; // allowed
 	for (; (*out = *in) != '\0'; in++, out++, n--) {
@@ -236,7 +236,7 @@ enum errorState urlDecode(const char *in, char *out, size_t n) {
 	return ERROR_FALSE; // success
 }
 
-enum errorState fileNameEncode(const char *in, char *out, size_t n) {
+enum ErrorState fileNameEncode(const char *in, char *out, size_t n) {
 	if (in == NULL)
 		return ERROR_FALSE; // allowed
 	for (; (*out = *in) != '\0'; in++, out ++, n--) {
