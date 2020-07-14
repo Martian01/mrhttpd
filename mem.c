@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.5
+mrhttpd v2.5.0
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -24,16 +24,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // Containing some trickery with local memory pools to avoid the management of
 // global heap memory using malloc() and free().
+
+// The concept of fixed memory arrays backing variable-length strings and string arrays
+// is not entirely dissimilar to the concept of slices in Go.
+
 // This may appear rigid, but it guarantees the absence of memory leaks.
 
-// In a way, mempool and stringpool are class definitions (in mrhttpd.h),
+// In a way, memPool and stringPool are class definitions (in mrhttpd.h),
 // and the functions in this include are their instance methods.
 
-void mp_reset(mempool *mp) {
+void memPoolReset(memPool *mp) {
 	mp->current = 0;
 }
 
-enum error_state mp_add(mempool *mp, const char *string) {
+enum errorState memPoolAdd(memPool *mp, const char *string) {
 	int added;
 
 	if (string == NULL)
@@ -48,7 +52,7 @@ enum error_state mp_add(mempool *mp, const char *string) {
 	return ERROR_FALSE; // success
 }
 
-enum error_state mp_extend(mempool *mp, const char *string) {
+enum errorState memPoolExtend(memPool *mp, const char *string) {
 	int target, added;
 
 	if (string == NULL)
@@ -64,7 +68,7 @@ enum error_state mp_extend(mempool *mp, const char *string) {
 	return ERROR_FALSE; // success
 }
 
-enum error_state mp_extend_char(mempool *mp, const char c) {
+enum errorState memPoolExtendChar(memPool *mp, const char c) {
 	int target;
 
 	target = (mp->current == 0) ? 0 : (mp->current - 1);
@@ -76,17 +80,17 @@ enum error_state mp_extend_char(mempool *mp, const char c) {
 	return ERROR_FALSE; // success
 }
 
-enum error_state mp_extend_number(mempool *mp, const unsigned num) {
+enum errorState memPoolExtendNumber(memPool *mp, const unsigned num) {
 	static char digit[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 	
 	if (num < 10)
-		return mp_extend_char(mp, digit[num]);
+		return memPoolExtendChar(mp, digit[num]);
 		
-	return mp_extend_number(mp, num / 10 ) || mp_extend_char(mp, digit[num % 10]);
+	return memPoolExtendNumber(mp, num / 10 ) || memPoolExtendChar(mp, digit[num % 10]);
 
 }
 
-void mp_replace(mempool *mp, const char from, const char to) {
+void memPoolReplace(memPool *mp, const char from, const char to) {
 	char *cp;
 	int i;
 	
@@ -95,12 +99,21 @@ void mp_replace(mempool *mp, const char from, const char to) {
 		  *cp = to;
 }
 
-void sp_reset(stringpool *sp) {
-	mp_reset(sp->mp);
+int memPoolLineBreak(const memPool *mp, const int start) {
+	int i;
+	
+	for (i = start; i < mp->current - 1; i++)
+		if (mp->mem[i] == '\r' && mp->mem[i + 1] == '\n')
+			return i;
+	return -1;
+}
+
+void stringPoolReset(stringPool *sp) {
+	memPoolReset(sp->mp);
 	sp->current = 0;
 }
 
-enum error_state sp_add(stringpool *sp, const char *string) {
+enum errorState stringPoolAdd(stringPool *sp, const char *string) {
 	int target;
 
 	if (string == NULL)
@@ -110,43 +123,43 @@ enum error_state sp_add(stringpool *sp, const char *string) {
 		return ERROR_TRUE; // no space left in index array
 
 	target = sp->mp->current;
-	if (mp_add(sp->mp, string))
+	if (memPoolAdd(sp->mp, string))
 		return ERROR_TRUE; // memory allocation failed
 
 	sp->strings[sp->current++] = sp->mp->mem + target;
 	return ERROR_FALSE; // success
 }
 
-enum error_state sp_add_variable(stringpool *sp, const char *varname, const char *value) {
+enum errorState stringPoolAddVariable(stringPool *sp, const char *varName, const char *value) {
 	return
-		sp_add(sp, varname) ||
-		mp_extend(sp->mp, "=") ||
-		mp_extend(sp->mp, value)
+		stringPoolAdd(sp, varName) ||
+		memPoolExtend(sp->mp, "=") ||
+		memPoolExtend(sp->mp, value)
 		;
 }
 
-enum error_state sp_add_variable_number(stringpool *sp, const char *varname, const unsigned value) {
+enum errorState stringPoolAddVariableNumber(stringPool *sp, const char *varName, const unsigned value) {
 	return
-		sp_add(sp, varname) ||
-		mp_extend(sp->mp, "=") ||
-		mp_extend_number(sp->mp, value)
+		stringPoolAdd(sp, varName) ||
+		memPoolExtend(sp->mp, "=") ||
+		memPoolExtendNumber(sp->mp, value)
 		;
 }
 
-enum error_state sp_add_variables(stringpool *sp, const stringpool *var, const char *prefix) {
+enum errorState stringPoolAddVariables(stringPool *sp, const stringPool *var, const char *prefix) {
 	char **strp;
-	char *varname, *value;
+	char *varName, *value;
 	int i;
 	
 	for (strp = var->strings, i = var->current; i > 0; strp++, i--) {
 		value = *strp;
-		varname = strsep(&value, ":");
+		varName = strsep(&value, ":");
 		if (value != NULL)
 			if (
-					sp_add(sp, prefix) ||
-					mp_extend(sp->mp, str_toupper(varname)) ||
-					mp_extend(sp->mp, "=") ||
-					mp_extend(sp->mp, startof(value))
+					stringPoolAdd(sp, prefix) ||
+					memPoolExtend(sp->mp, strToUpper(varName)) ||
+					memPoolExtend(sp->mp, "=") ||
+					memPoolExtend(sp->mp, startOf(value))
 				)
 				return ERROR_TRUE; // otherwise continue
 	}
@@ -154,18 +167,18 @@ enum error_state sp_add_variables(stringpool *sp, const stringpool *var, const c
 
 }
 
-char *sp_read_variable(const stringpool *sp, const char *varname) {
-	size_t namelength;
+char *stringPoolReadVariable(const stringPool *sp, const char *varName) {
+	size_t nameLength;
 	char **strp;
 	char *value;
 	int i;
 	
-	namelength = strlen(varname);
+	nameLength = strlen(varName);
 	for (strp = sp->strings, i = sp->current; i > 0; strp++, i--) {
-		if (strncmp(*strp, varname, namelength) == 0) {
-			value = *strp + namelength;
+		if (strncmp(*strp, varName, nameLength) == 0) {
+			value = *strp + nameLength;
 			if (*value == ':')
-				return startof(++value);
+				return startOf(++value);
 		}
 	}
 	return NULL; // variable not found

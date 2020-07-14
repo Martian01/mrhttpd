@@ -34,11 +34,11 @@ The documentation you are reading right now has originally been written in plain
 
 ## Concept & Restrictions
 
-Mrhttpd is a threaded web server that is lightning fast, simple, robust, secure and has a very small memory footprint. The binary is 15 to 20 kilobytes in size, depending on configuration and CPU architecture. mrhttpd serves files at 3 to 4 times the throughput of Apache and runs CGI scripts. It is not designed to implement the full HTTP protocol. For instance, mrhttpd does not implement HTTP methods other than GET. Since version 2.0 mrhttpd supports HTTP Keep-Alive.
+Mrhttpd is a threaded web server that is lightning fast, simple, robust, secure and has a very small memory footprint. The binary is 15 to 20 kilobytes in size, depending on configuration and CPU architecture. mrhttpd serves files at 3 to 4 times the throughput of Apache and runs CGI scripts. It is not designed to implement the full HTTP protocol. Since version 2.0 mrhttpd supports HTTP Keep-Alive. Since version 2.5 mrhttpd supports PUT and POST requests.
 
-Having started as a Linux specific project taking advantage of a few Linux specific featurs, the coding should be portable to other operating systems by now. The only caveat is: it has not been tested.
+Having started as a Linux specific project taking advantage of a few Linux specific featurs, the coding should be portable to other operating systems by now. However, the runtime behaviour on other operating systems is not regularly tested. Your mileage may vary.
 
-Mrhttpd is now also available as Docker image. At 2.7 MB compressed, 5.6 MB uncompressed, it is probably the smallest and fastest web server available as Docker image. Whenever you need to serve static files as part of your project, why not fire up the mrhttpd docker image.
+Mrhttpd is now also available as Docker image. At 2.7 MB compressed, 5.6 MB uncompressed, it is probably the smallest and fastest web server available as Docker image. Whenever you need to serve static files as part of your project, why not fire up the mrhttpd Docker image.
 
 ## Background & History
 
@@ -67,10 +67,10 @@ defines the user account under which mrhttpd will run. Note: If mrhttpd is confi
 specifies the directory that will become the chroot jail of the server. All other paths with the exception of BIN_DIR are therefore relative to SERVER_ROOT. Be aware that a chroot jail can be very restrictive. In particular all your document files and all binaries and libraries required for running external programs must be replicated in the chroot jail.
 
 #### SERVER_PORT
-defines the TCP port the server is listening on. The standard for the HTTP protocol is port 80, but you can use any other port if you like. It is quite possible to test one version of mrhttpd on a test port while the productive web server listens on port 80 at the same time.
+defines the TCP port the server is listening on. The default is port 8080, but you can use any other port you like. It is quite possible to run multiple server instances at the same time, each one configured for a different port.
 
 #### SERVER_NAME
-defines the host name sent to CGI programs as a parameter. This is different from the "Server" attribute in the HTTP header which is hardcoded to "mrhttpd/2.4.5".
+defines the host name sent to CGI programs as a parameter. This is different from the "Server" attribute in the HTTP header which is hardcoded to "mrhttpd/2.5.0".
 
 #### SERVER_DOCS
 defines the root directory for internal files. Internal files are documents like the 404 error page.
@@ -81,11 +81,14 @@ defines the installation directory for the binary. This is the only directory no
 #### DOC_DIR
 defines the root directory for all static files (HTML, CSS, JPG, etc.), ie. the actual productive content of the web server.
 
-#### CGI_URL
-defines the URL component indicating that the resource is a CGI script rather than a static file. Whenever mrhttpd finds this component at the beginning of the resource path, it assumes the resource is an executable CGI script.
-
 #### CGI_DIR
 defines the root directory for CGI scripts.
+
+#### CGI_PATH
+defines the URL prefix indicating that the resource is a CGI script rather than a static file. Whenever mrhttpd finds this string at the beginning of the resource path, it assumes the resource is an executable CGI script.
+
+#### PUT_PATH
+defines the URL prefix and the base directory for uploads. A PUT or POST request is accepted and executed if and only if mrhttpd finds this string at the beginning of the resource path.
 
 #### DEFAULT_INDEX
 defines the name of the default file in a directory. Typically you use "index.html" or similar. mrhttpd will serve this file if no file name is specified in the URL. For example, if a client requests http://server/path/ mrhttpd will try to send http://server/path/index.html.
@@ -138,7 +141,7 @@ is an option for the method of processing query strings. If this variable exists
 
 Example: assuming a request for a resource index.html?sorted=yes. Normally the server will read the file index.html. The query string sorted=yes will be omitted. If the resource is a CGI script the query string will be passed in the environment string QUERY. If you specify QUERY_HACK=index, the processing will be different and the server will read the file index.html?sorted=yes.
 
-The option is named a hack because it is a violation of the HTTP specification. It is, however, useful when you have mirrored dynamic resources using wget, and wget has created filenames containing the query part.
+The option is named a hack because it is a violation of the HTTP specification. It is, however, useful when you have mirrored dynamic resources using wget, and wget has created fileNames containing the query part.
 
 ## Build
 

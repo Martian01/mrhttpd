@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.5
+mrhttpd v2.5.0
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -27,234 +27,169 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RECEIVE_TIMEOUT 30
 #define SEND_TIMEOUT 5
 
-void set_timeout(const int sockfd) {
+void setTimeout(const int socket) {
 	struct timeval timeout;
 
 	timeout.tv_sec  = RECEIVE_TIMEOUT;
 	timeout.tv_usec = 0;
-	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+	setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
 	timeout.tv_sec  = SEND_TIMEOUT;
 	timeout.tv_usec = 0;
-	setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+	setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
 }
 
-#define RECV_BUFLEN 2047
-
-int recv_header_with_timeout(stringpool *sp, const int sockfd) {
-	char buf[RECV_BUFLEN + 1];
-	ssize_t numbytes; 
+int receiveHeader(const int socket, stringPool *headerPool, memPool *buffer) {
 	ssize_t received;
-	fd_set readfds;
-	struct timeval timeout;
-	char *cursor;
-	char *delim;
+	int cursor;
+	int delim;
 
-	sp_reset(sp);
-	numbytes = 0;
+	stringPoolReset(headerPool);
 
-_read:
+_readFresh:
+	memPoolReset(buffer);
+
+_readMore:
 	#if DEBUG & 8
-	Log(sockfd, "RHWT: read loop iteration.");
+	Log(socket, "RHWT: read loop iteration.");
 	#endif
 
-	received = recv(sockfd, buf + numbytes, RECV_BUFLEN - numbytes, 0);
+	received = recv(socket, buffer->mem + buffer->current, buffer->size - buffer->current, 0);
 	if (received == 0) {
 		#if DEBUG & 8
-		Log(sockfd, "RHWT: recv strangeness. received=%d", received);
+		Log(socket, "RH: recv strangeness. received=%d", received);
 		#endif
 		return -ESTRANGE; // error
 	}
 	if (received < 0) {
 		#if DEBUG & 8
-		Log(sockfd, "RHWT: recv error. received=%d, errno=%d", received, errno);
+		Log(socket, "RH: recv error. received=%d, errno=%d", received, errno);
 		#endif
 		if (errno == EAGAIN)
-			goto _read;
+			goto _readMore;
 		return received; // propagate error
 	}
 	#if DEBUG & 8
-	Log(sockfd, "RHWT: recv OK. received=%d", received);
+	Log(socket, "RH: recv OK. received=%d", received);
 	#endif
-	numbytes += received;
-	buf[numbytes] = '\0'; // end marker for strstr
-		
-	cursor = buf; // cursor positioned on beginning of line
-_parse:
-	delim = strstr(cursor, "\r\n"); // search for end of line
+	buffer->current += received;
+	cursor = 0; // cursor positioned on beginning of line
+
+_parseNextLine:
+	delim = memPoolLineBreak(buffer, cursor); // search for end of line
 	#if DEBUG & 16
-	Log(sockfd, "RHWT: parser loop iteration. numbytes=%#x, buf=%p, cursor=%p, delim=%p", 
-		numbytes, buf, cursor, delim);
+	Log(socket, "RH: parser loop iteration. cursor=%#x, delim=%#x, end=%#x", cursor, delim, buffer->current);
 	#endif
-	if (delim == NULL) { // end of line not found
-		if (cursor > buf) { // make some space and keep reading
-			numbytes -= (cursor - buf);
-			memmove(buf, cursor, numbytes);
-			goto _read;
+	if (delim < 0) { // end of line not found
+		if (cursor > 0) { // make some space and keep reading
+			buffer->current -= cursor;
+			memmove(buffer->mem, buffer->mem + cursor, buffer->current);
+			goto _readMore;
 		}
-		if (numbytes < RECV_BUFLEN) { // buffer not full: keep reading
-			goto _read;
+		if (buffer->current < buffer->size) { // buffer not full: keep reading
+			goto _readMore;
 		}
 		return -1; // buffer full: we're bloated
-	}
-	else if (cursor != delim) { // line is not empty
-		*delim = '\0'; // make it a zero terminated string
-		if (sp_add(sp, cursor)) // add string to header array
-		  return -1; // header array full or whatever
+	} else if (cursor != delim) { // line is not empty
+		buffer->mem[delim] = '\0'; // make it a zero-terminated string
+		if (stringPoolAdd(headerPool, buffer->mem + cursor)) // add string to header pool
+		  return -1; // header pool full or whatever
 		#if DEBUG & 32
-		Log(sockfd, "RHWT: parser found header: %s", cursor);
+		Log(socket, "RH: parser found header: %#x", cursor);
 		#endif
 		cursor = delim + 2; // beginning of next line
-		if (cursor < buf + numbytes) {
-			goto _parse; // find next line in buffer
-		}
-		else {
-			numbytes = 0; // buffer exhausted, read more data
-			goto _read;
-		}
+		if (cursor < buffer->current)
+			goto _parseNextLine; // find next line in buffer
+		else
+			goto _readFresh; // buffer exhausted, read more data
 	}
 		
-	// empty line found == end of header
+	// else: empty line found == end of header
 
-	// The question at this point is whether there is any further data
-	// after the header, and if so, to which HTTP request it belongs:
-	// the current one or the next one?
-	// At this point we assume it belongs to the current one (probably
-	// some misguided POST or PUT request) and can be discarded.
-	// Since we currently only support the GET method we do not attempt
-	// to read any further data after the header. 
-
-	#if DEBUG & 64
 	cursor = delim + 2;
-	if (cursor < buf + numbytes) { // there is some data left in the buffer
-		numbytes -= (cursor - buf); // save the data in the buffer
-		memmove(buf, cursor, numbytes);
-		buf[32] = '\0'; // hack for logging purposes only
-		Log(sockfd, "RHWT: data past header: numbytes=%#x, data=%s", numbytes, buf );
-	} else { // spot landing: no data left in buffer
-		numbytes = 0; // initialize the buffer
-		Log(sockfd, "RHWT: spot landing (no data past header).");
+	if (cursor < buffer->current) { // there is some data left in the buffer
+		buffer->current -= cursor;
+		memmove(buffer->mem, buffer->mem + cursor, buffer->current);
+		#if DEBUG & 64
+		Log(socket, "RH: data past header: amount=%#x", buffer->current);
+		#endif
+	} else { // no data left in the buffer
+		memPoolReset(buffer); // initialize the buffer
+		#if DEBUG & 64
+		Log(socket, "RH: spot landing (no data past header).");
+		#endif
 	}
-	#endif
 
-	return sp->current > 0 ? 0 : -1; // success if and only if there is a non-empty header line
+	return headerPool->current > 0 ? 0 : -1; // success if and only if there is a non-empty header line
 }
 
-ssize_t send_with_timeout(const int sockfd, const char *buf, const ssize_t len) {
-	ssize_t numbytes, sent, remaining;
-	fd_set writefds;
-	struct timeval timeout;
+ssize_t sendMemPool(const int socket, const memPool *mp) {
+	return sendBuffer(socket, mp->mem, mp->current);
+}
 
-	numbytes = 0;
+ssize_t sendBuffer(const int socket, const char *buf, const ssize_t len) {
+	ssize_t numBytes, sent, remaining;
+
+	numBytes = 0;
 	remaining = len;
 
-	do {
+	while (remaining > 0) {
 		#if DEBUG & 2
-		Log(sockfd, "SWT:  loop iteration.");
+		Log(socket, "SWT:  loop iteration.");
 		#endif
-		sent = send(sockfd, buf + numbytes, remaining, MSG_NOSIGNAL);
+		sent = send(socket, buf + numBytes, remaining, MSG_NOSIGNAL);
 		if (sent == 0) {
 			#if DEBUG & 2
-			Log(sockfd, "SWT:  send strangeness. sent=%d", sent);
+			Log(socket, "SWT:  send strangeness. sent=%d", sent);
 			#endif
 			return -ESTRANGE; // error
 		}
 		if (sent < 0) {
 			#if DEBUG & 2
-			Log(sockfd, "SWT:  send error. sent=%d, errno=%d", sent, errno);
+			Log(socket, "SWT:  send error. sent=%d, errno=%d", sent, errno);
 			#endif
 			if (errno == EAGAIN)
 				continue;
 			return sent; // propagate error
 		}
-		numbytes += sent;
+		numBytes += sent;
 		remaining -= sent;
 		#if DEBUG & 2
-		Log(sockfd, "SWT:  send OK. sent=%d", sent);
+		Log(socket, "SWT:  send OK. sent=%d", sent);
 		#endif
 	}
-	while (remaining > 0);
 
 	#if DEBUG & 2
-	Log(sockfd, "SWT:  return OK. numbytes=%d", numbytes);
+	Log(socket, "SWT:  return OK. numBytes=%d", numBytes);
 	#endif
-	return numbytes;
+	return numBytes;
 }
 
-#if SENDFILE == 0
+ssize_t sendFile(const int socket, const int fd, const ssize_t len) {
+	ssize_t numBytes, remaining, sent;
 
-// simple replacement of sendfile() for non-linux builds
-// note: offset functionality has been stripped from signature and code
-
-#define SF_BUFLEN 16384
-
-ssize_t mysendfile(const int sockfd, const int fd, ssize_t count) {
-	char buf[SF_BUFLEN];
-	ssize_t received, sent;
-	ssize_t total = 0;
-	
-	#if DEBUG & 2
-	Log(sockfd, "MSF:  entering.");
-	#endif
-	do {
-		received = read(fd, buf, (count >= SF_BUFLEN) ? SF_BUFLEN : count );
-		if (received == 0) {
-			#if DEBUG & 2
-			Log(sockfd, "MSF:  read strangeness. received=%d", received);
-			#endif
-			return -ESTRANGE; // error
-		}
-		if (received < 0) {
-			#if DEBUG & 2
-			Log(sockfd, "MSF:  read error. received=%d, errno=%d", received, errno);
-			#endif
-			return received; // propagate error
-		}
-		sent = send_with_timeout(sockfd, buf, received);
-		if (sent < 0) {
-			#if DEBUG & 2
-			Log(sockfd, "MSF:  SWT error. sent=%d", sent);
-			#endif
-			return sent; // propagate error
-		}
-		count -= received;
-		total += received;
-	} while (count > 0);
-	
-	#if DEBUG & 2
-	Log(sockfd, "MSF:  return OK. total=%d", total);
-	#endif
-	return total;
-}
-
-#endif
-
-ssize_t sendfile_with_timeout(const int sockfd, const int fd, const ssize_t len) {
-	ssize_t numbytes, remaining, sent;
-
-	numbytes = 0;
+	numBytes = 0;
 	remaining = len;
 
-	do {
+	while (remaining > 0) {
 		#if DEBUG & 2
-		Log(sockfd, "SFWT: loop iteration.");
+		Log(socket, "SF: loop iteration.");
 		#endif
-		
-		#if SENDFILE == 0
-		sent = mysendfile(sockfd, fd, remaining);
-		#endif
+
 		#if SENDFILE == 1
-		sent = sendfile(sockfd, fd, NULL, remaining);
+		sent = sendfile(socket, fd, NULL, remaining);
+		#else
+		sent = pipeStream(fd, socket, remaining);
 		#endif
 		if (sent == 0) {
 			#if DEBUG & 2
-			Log(sockfd, "SFWT: sendfile strangeness. sent=%d", sent);
+			Log(socket, "SF: pipe strangeness. sent=%d", sent);
 			#endif
 			return -ESTRANGE; // error
 		}
 		if (sent < 0 ) {
 			#if DEBUG & 2
-			Log(sockfd, "SFWT: sendfile error. sent=%d, errno=%d", sent, errno);
+			Log(socket, "SF: pipe error. sent=%d, errno=%d", sent, errno);
 			#endif
 			#if SENDFILE == 1
 			if (errno == EAGAIN)
@@ -262,17 +197,105 @@ ssize_t sendfile_with_timeout(const int sockfd, const int fd, const ssize_t len)
 			#endif
 			return sent; // propagate error
 		}
-		numbytes += sent;
+		numBytes += sent;
 		remaining -= sent;
 		#if DEBUG & 2
-		Log(sockfd, "SFWT: sendfile OK. sent=%d", sent);
+		Log(socket, "SF: send OK. sent=%d", sent);
 		#endif
 	}
-	while (remaining > 0);
 
 	#if DEBUG & 2
-	Log(sockfd, "SFWT: return OK. numbytes=%d", numbytes);
+	Log(socket, "SF: return OK. numBytes=%d", numBytes);
 	#endif
-	return numbytes;
+	return numBytes;
 }
 
+#ifdef PUT_PATH
+ssize_t receiveFile(const int socket, const int fd, const ssize_t len) {
+	ssize_t numBytes, remaining, sent;
+
+	numBytes = 0;
+	remaining = len;
+
+	while (remaining > 0) {
+		#if DEBUG & 2
+		Log(socket, "RF: loop iteration.");
+		#endif
+		
+		sent = pipeStream(socket, fd, remaining);
+		if (sent == 0) {
+			#if DEBUG & 2
+			Log(socket, "RF: pipe strangeness. sent=%d", sent);
+			#endif
+			return -ESTRANGE; // error
+		}
+		if (sent < 0 ) {
+			#if DEBUG & 2
+			Log(socket, "RF: pipe error. sent=%d, errno=%d", sent, errno);
+			#endif
+			return sent; // propagate error
+		}
+		numBytes += sent;
+		remaining -= sent;
+		#if DEBUG & 2
+		Log(socket, "RF: receive OK. sent=%d", sent);
+		#endif
+	}
+
+	#if DEBUG & 2
+	Log(socket, "RF: return OK. numBytes=%d", numBytes);
+	#endif
+	return numBytes;
+}
+#endif
+
+#if SENDFILE == 0 || defined(PUT_PATH)
+ssize_t pipeStream(const int in, const int out, ssize_t count) {
+	char buf[16384];
+	ssize_t received, sent;
+	ssize_t remainingToBeSent;
+	ssize_t remainingToBeRead = count;
+	ssize_t total = 0;
+
+	#if DEBUG & 2
+	Log(out, "PS:  entering.");
+	#endif
+	while (count == 0 || remainingToBeRead > 0) {
+		received = read(in, buf, (count == 0 || remainingToBeRead >= sizeof(buf)) ? sizeof(buf) : remainingToBeRead );
+		if (received == 0) {
+			#if DEBUG & 2
+			Log(out, "PS:  side exit. received=%d, total=%d", received, total);
+			#endif
+			return total;
+		}
+		if (received < 0) {
+			#if DEBUG & 2
+			Log(out, "PS:  read error. received=%d, errno=%d", received, errno);
+			#endif
+			if (errno == EAGAIN)
+				continue;
+			return received; // propagate error
+		}
+		remainingToBeSent = received;
+		while (remainingToBeSent > 0) {
+			sent = sendBuffer(out, buf, remainingToBeSent);
+			if (sent < 0) {
+				#if DEBUG & 2
+				Log(out, "PS:  send error. sent=%d", sent);
+				#endif
+				if (errno == EAGAIN)
+					continue;
+				return sent; // propagate error
+			}
+			remainingToBeSent -= sent;
+		}
+		total += received;
+		if (count > 0)
+			remainingToBeRead -= received;
+	}
+	#if DEBUG & 2
+	Log(out, "PS:  main exit. total=%d", total);
+	#endif
+	return total;
+}
+#endif

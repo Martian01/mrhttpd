@@ -3,8 +3,8 @@
 # This scripts reads the mrhttpd configuration file mrhttpd.conf
 # and generates the C include config.h
 #
-# mrhttpd v2.4.5
-# Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
+# mrhttpd v2.5.0
+# Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 . ./mrhttpd.conf
 . ./checkconfig
@@ -20,8 +20,9 @@ echo "Server name:           $_SERVER_NAME"
 echo "Server documents:      $_SERVER_DOCS"
 echo "Binary directory:      $_BIN_DIR"
 echo "Documents directory:   $_DOC_DIR"
-echo "URL path for CGI:      $_CGI_URL"
 echo "CGI script directory:  $_CGI_DIR"
+echo "Path for CGI scripts:  $_CGI_PATH"
+echo "Path for PUT requests: $_PUT_PATH"
 echo "Default index name:    $_DEFAULT_INDEX"
 echo "System user:           $_SYSTEM_USER"
 echo "Pragma:                $_PRAGMA"
@@ -56,8 +57,8 @@ cat > config.h << EOF
 This include has been generated automatically. DO NOT CHANGE MANUALLY.
 Instead, change the master configuration file mrhttpd.conf and run configure.
 
-mrhttpd v2.4.5
-Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
+mrhttpd v2.5.0
+Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 */
 
@@ -77,9 +78,12 @@ if [ -n "$SERVER_DOCS" ]; then
 fi
 echo '#define BIN_DIR         "'$BIN_DIR'"' >>config.h
 echo '#define DOC_DIR         "'$DOC_DIR'"' >>config.h
-if [ -n "$CGI_URL" ]; then
-  echo '#define CGI_URL         "'$CGI_URL'"' >>config.h
+if [ -n "$CGI_PATH" ]; then
+  echo '#define CGI_PATH         "'$CGI_PATH'"' >>config.h
   echo '#define CGI_DIR         "'$CGI_DIR'"' >>config.h
+fi
+if [ -n "$PUT_PATH" ]; then
+  echo '#define PUT_PATH         "'$PUT_PATH'"' >>config.h
 fi
 if [ -n "$DEFAULT_INDEX" ]; then
   echo '#define DEFAULT_INDEX   "'$DEFAULT_INDEX'"' >>config.h

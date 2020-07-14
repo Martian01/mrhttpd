@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.5
+mrhttpd v2.5.0
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mrhttpd.h"
 
-enum http_code_index {
+enum httpCodeIndex {
 	HTTP_200,
 	HTTP_201,
 	HTTP_202,
@@ -40,7 +40,7 @@ enum http_code_index {
 };
 
 #ifdef SERVER_DOCS
-const char *http_file[] = {
+const char *httpFile[] = {
 	SERVER_DOCS "/200.html",
 	SERVER_DOCS "/201.html",
 	SERVER_DOCS "/202.html",
@@ -60,7 +60,7 @@ const char *http_file[] = {
 };
 #endif
 
-const char *http_code_string[] = {
+const char *httpCodeString[] = {
 	"200 OK\r",
 	"201 Created\r",
 	"202 Accepted\r",
@@ -79,12 +79,12 @@ const char *http_code_string[] = {
 	"503 Service Unavailable\r"
 };
 
-const char *connection_string[] = {
+const char *connectionString[] = {
 	"Connection: keep-alive\r",
 	"Connection: close\r"
 };
 
-enum connection_state http_request(const int sockfd) {
+enum connectionState httpRequest(const int socket) {
 
 	char *hp; 
 	char *method; 
@@ -97,374 +97,373 @@ enum connection_state http_request(const int sockfd) {
 	
 	int statusCode;
 	int fd;
-	enum connection_state connection_state = CONNECTION_CLOSE;
+	enum connectionState connectionState = CONNECTION_CLOSE;
 
-	char filenamebuf[512];
-	mempool filenamepool = { sizeof(filenamebuf), 0, filenamebuf };
-	char *filename = filenamebuf;
+	char fileNameBuf[512];
+	memPool fileNamePool = { sizeof(fileNameBuf), 0, fileNameBuf };
+	char *fileName = fileNameBuf;
 
-	char requestheaderbuf[2048];
-	mempool requestheadermempool = { sizeof(requestheaderbuf), 0, requestheaderbuf };
-	char *requestheader[64];
-	stringpool requestheaderpool = { sizeof(requestheader), 0, requestheader, &requestheadermempool };
+	char generalPurposeBuf[2048];
+	memPool generalPurposeMemPool = { sizeof(generalPurposeBuf), 0, generalPurposeBuf };
 
-	char replyheaderbuf[512];
-	mempool replyheadermempool = { sizeof(replyheaderbuf), 0, replyheaderbuf };
-	char *replyheader[16];
-	stringpool replyheaderpool = { sizeof(replyheader), 0, replyheader, &replyheadermempool };
+	char requestHeaderBuf[2048];
+	memPool requestHeaderMemPool = { sizeof(requestHeaderBuf), 0, requestHeaderBuf };
+	char *requestHeader[64];
+	stringPool requestHeaderPool = { sizeof(requestHeader), 0, requestHeader, &requestHeaderMemPool };
 
-	#ifdef CGI_URL
-	char envbuf[3072];
-	mempool envmempool = { sizeof(envbuf), 0, envbuf };
+	char replyHeaderBuf[512];
+	memPool replyHeaderMemPool = { sizeof(replyHeaderBuf), 0, replyHeaderBuf };
+	char *replyHeader[16];
+	stringPool replyHeaderPool = { sizeof(replyHeader), 0, replyHeader, &replyHeaderMemPool };
+
+	#ifdef CGI_PATH
 	char *env[96];
-	stringpool envpool = { sizeof(env), 0, env, &envmempool };
+	stringPool envPool = { sizeof(env), 0, env, &generalPurposeMemPool };
 	#endif
 
-	#if LOG_LEVEL > 0 || defined(CGI_URL)
+	#if LOG_LEVEL > 0 || defined(CGI_PATH)
 	struct sockaddr_in sa;
-	int addrlen = sizeof(struct sockaddr_in);
-	getpeername(sockfd, (struct sockaddr *)&sa, (socklen_t *) &addrlen);
+	int addressLength = sizeof(struct sockaddr_in);
+	getpeername(socket, (struct sockaddr *)&sa, (socklen_t *) &addressLength);
 	char client[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &sa.sin_addr, client, INET_ADDRSTRLEN);
 	int port = ntohs(sa.sin_port);
 	#endif
 
 	// Read request header
-	if (recv_header_with_timeout(&requestheaderpool, sockfd) < 0)
+	if (receiveHeader(socket, &requestHeaderPool, &generalPurposeMemPool) < 0)
 		return CONNECTION_CLOSE; // socket is in undefined state
 
 	// Identify first token.
-	hp = requestheader[0];
+	hp = requestHeader[0];
 	method = strsep(&hp, " ");
 	if (strcmp(method, "GET")) {
 		#if LOG_LEVEL > 0
-		Log(sockfd, "%15s  501  \"%s\"", client, method);
+		Log(socket, "%15s  501  \"%s\"", client, method);
 		#endif
 		statusCode = HTTP_501;
-		goto _senderror; // method other than GET
+		goto _sendError; // method other than GET
 	}
 	if (hp == NULL) {
 		#if LOG_LEVEL > 0
-		Log(sockfd, "%15s  400  \"%s\"", client, method);
+		Log(socket, "%15s  400  \"%s\"", client, method);
 		#endif
 		statusCode = HTTP_400;
-		goto _senderror; // no resource
+		goto _sendError; // no resource
 	}
 	resource = strsep(&hp, " ");
 	if (hp == NULL) {
 		#if LOG_LEVEL > 0
-		Log(sockfd, "%15s  400  \"%s  %s\"", client, method, resource);
+		Log(socket, "%15s  400  \"%s  %s\"", client, method, resource);
 		#endif
 		statusCode = HTTP_400;
-		goto _senderror; // no protocol
+		goto _sendError; // no protocol
 	}
 	protocol = strsep(&hp, " ");
 	#if LOG_LEVEL > 1
-	Log(sockfd, "%15s  OK   \"%s  %s %s\"", client, method, resource, protocol);
+	Log(socket, "%15s  OK   \"%s  %s %s\"", client, method, resource, protocol);
 	#endif
 
-	connection = str_tolower(sp_read_variable(&requestheaderpool, "Connection"));
+	connection = strToLower(stringPoolReadVariable(&requestHeaderPool, "Connection"));
 	if (strcmp(protocol, PROTOCOL_HTTP_1_1) == 0) {
-		connection_state = CONNECTION_KEEPALIVE;
+		connectionState = CONNECTION_KEEPALIVE;
 		if (connection != NULL && strcmp(connection, "close") == 0)
-			connection_state = CONNECTION_CLOSE;
+			connectionState = CONNECTION_CLOSE;
 	} else if (strcmp(protocol, PROTOCOL_HTTP_1_0) == 0) {
-		connection_state = CONNECTION_CLOSE;
+		connectionState = CONNECTION_CLOSE;
 		if (connection != NULL && strcmp(connection, "keep-alive") == 0)
-			connection_state = CONNECTION_KEEPALIVE;
+			connectionState = CONNECTION_KEEPALIVE;
 	} else {
 		statusCode = HTTP_501;
-		goto _senderror;
+		goto _sendError;
 	}
 
 	query = resource;
 	resource = strsep(&query, "?");
-	if ( url_decode(resource, resource, 512) ) // space-saving hack: decode in-place
-		goto _senderror500;
-	if ( url_decode(query, query, 2048) ) // space-saving hack: decode in-place
-		goto _senderror500;
+	if ( urlDecode(resource, resource, 512) ) // space-saving hack: decode in-place
+		goto _sendError500;
+	if ( urlDecode(query, query, 2048) ) // space-saving hack: decode in-place
+		goto _sendError500;
 		
 	#ifdef QUERY_HACK
-	char newquery[512];
-	char newresource[512];
-	mempool newresourcemempool = { sizeof(newresource), 0, newresource };
+	char newQuery[512];
+	char newResource[512];
+	memPool newResourceMemPool = { sizeof(newResource), 0, newResource };
 	
 	if ( query != NULL )
 		if ( *query != '\0' )
 			if ( strncmp(resource, QUERY_HACK, strlen(QUERY_HACK)) == 0 ) {
 				if ( 
-						filename_encode(query, newquery, sizeof(newquery)) ||
-						mp_add(&newresourcemempool, resource) || 
-						mp_extend(&newresourcemempool, "?") || 
-						mp_extend(&newresourcemempool, newquery) 
+						fileNameEncode(query, newQuery, sizeof(newQuery)) ||
+						memPoolAdd(&newResourceMemPool, resource) || 
+						memPoolExtend(&newResourceMemPool, "?") || 
+						memPoolExtend(&newResourceMemPool, newQuery) 
 					)
-					goto _senderror500;
-				resource = newresource;
+					goto _sendError500;
+				resource = newResource;
 			}
 	#endif
 
 
 	if (strstr(resource, "/..")) {
 		#if LOG_LEVEL > 0
-		Log(sockfd, "%15s  403  \"SEC  %s %s\"", client, resource, protocol);
+		Log(socket, "%15s  403  \"SEC  %s %s\"", client, resource, protocol);
 		#endif
 		statusCode = HTTP_403;
-		goto _senderror; // potential security risk - zero tolerance
+		goto _sendError; // potential security risk - zero tolerance
 	}
 
-	#ifdef CGI_URL
-	if (!strncmp(resource, CGI_URL, strlen(CGI_URL))) { // presence of CGI URL indicates CGI script
-		if ( mp_add(&filenamepool, CGI_DIR) || mp_extend(&filenamepool, resource + strlen(CGI_URL)) )
-			goto _senderror500;
-		if (stat(filename, &st)) {
+	#ifdef CGI_PATH
+	if (!strncmp(resource, CGI_PATH, strlen(CGI_PATH))) { // presence of CGI URL indicates CGI script
+		if ( memPoolAdd(&fileNamePool, CGI_DIR) || memPoolExtend(&fileNamePool, resource + strlen(CGI_PATH)) )
+			goto _sendError500;
+		if (stat(fileName, &st)) {
 			#if LOG_LEVEL > 2
-			Log(sockfd, "%15s  404  \"CGI  %s %s\"", client, filename, query == NULL ? "" : query);
+			Log(socket, "%15s  404  \"CGI  %s %s\"", client, fileName, query == NULL ? "" : query);
 			#endif
 			statusCode = HTTP_404;
-			goto _senderror;
+			goto _sendError;
 		}
 		if (!S_ISREG(st.st_mode)) {
 			#if LOG_LEVEL > 2
-			Log(sockfd, "%15s  403  \"CGI  %s %s\"", client, filename, query == NULL ? "" : query);
+			Log(socket, "%15s  403  \"CGI  %s %s\"", client, fileName, query == NULL ? "" : query);
 			#endif
 			statusCode = HTTP_403;
-			goto _senderror;
+			goto _sendError;
 		}
-		if (access(filename, 1)) {
+		if (access(fileName, 1)) {
 			#if LOG_LEVEL > 2
-			Log(sockfd, "%15s  503  \"CGI  %s %s\"", client, filename, query == NULL ? "" : query);
+			Log(socket, "%15s  503  \"CGI  %s %s\"", client, fileName, query == NULL ? "" : query);
 			#endif
 			statusCode = HTTP_503;
-			goto _senderror;
+			goto _sendError;
 		}
 		#if LOG_LEVEL > 3
-		Log(sockfd, "%15s  000  \"CGI  %s %s\"", client, filename, query == NULL ? "" : query);
+		Log(socket, "%15s  000  \"CGI  %s %s\"", client, fileName, query == NULL ? "" : query);
 		#endif
 
 		// set up environment of cgi program
-		sp_reset(&envpool);
-		sp_reset(&replyheaderpool);
+		stringPoolReset(&envPool);
+		stringPoolReset(&replyHeaderPool);
 		if (
-			sp_add_variable(&envpool, "SERVER_NAME",  SERVER_NAME) ||
-			sp_add_variable(&envpool, "SERVER_PORT",  SERVER_PORT_STR) ||
-			sp_add_variable(&envpool, "SERVER_SOFTWARE", SERVER_SOFTWARE) ||
-			sp_add_variable(&envpool, "SERVER_PROTOCOL", protocol) ||
-			sp_add_variable(&envpool, "REQUEST_METHOD", method) ||
-			sp_add_variable(&envpool, "SCRIPT_FILENAME", filename) ||
-			sp_add_variable(&envpool, "QUERY_STRING", (query == NULL) ? "" : query) ||
-			sp_add_variable(&envpool, "REMOTE_ADDR", client) ||
-			sp_add_variable_number(&envpool, "REMOTE_PORT", port) ||
-			sp_add_variables(&envpool, &requestheaderpool, "HTTP_") ||
+			stringPoolAddVariable(&envPool, "SERVER_NAME",  SERVER_NAME) ||
+			stringPoolAddVariable(&envPool, "SERVER_PORT",  SERVER_PORT_STR) ||
+			stringPoolAddVariable(&envPool, "SERVER_SOFTWARE", SERVER_SOFTWARE) ||
+			stringPoolAddVariable(&envPool, "SERVER_PROTOCOL", protocol) ||
+			stringPoolAddVariable(&envPool, "REQUEST_METHOD", method) ||
+			stringPoolAddVariable(&envPool, "SCRIPT_FILENAME", fileName) ||
+			stringPoolAddVariable(&envPool, "QUERY_STRING", (query == NULL) ? "" : query) ||
+			stringPoolAddVariable(&envPool, "REMOTE_ADDR", client) ||
+			stringPoolAddVariableNumber(&envPool, "REMOTE_PORT", port) ||
+			stringPoolAddVariables(&envPool, &requestHeaderPool, "HTTP_") ||
 			//set up reply header
-			sp_add(&replyheaderpool, protocol) ||
-			mp_extend_char(&replyheadermempool, ' ') ||
-			mp_extend(&replyheadermempool, http_code_string[HTTP_200]) ||
-			sp_add(&replyheaderpool, "Server: " SERVER_SOFTWARE "\r") ||
-			sp_add(&replyheaderpool, connection_string[CONNECTION_CLOSE])
+			stringPoolAdd(&replyHeaderPool, protocol) ||
+			memPoolExtendChar(&replyHeaderMemPool, ' ') ||
+			memPoolExtend(&replyHeaderMemPool, httpCodeString[HTTP_200]) ||
+			stringPoolAdd(&replyHeaderPool, "Server: " SERVER_SOFTWARE "\r") ||
+			stringPoolAdd(&replyHeaderPool, connectionString[CONNECTION_CLOSE])
 		) {
 			#if LOG_LEVEL > 0
-			Log(sockfd, "Memory Error preparing CGI header for %s", filename);
+			Log(socket, "Memory Error preparing CGI header for %s", fileName);
 			#endif
-			goto _senderror500;
+			goto _sendError500;
 		}
-		mp_replace(&replyheadermempool, '\0', '\n');
+		memPoolReplace(&replyHeaderMemPool, '\0', '\n');
 				
-		pid_t child_pid = fork();
-		if (child_pid == 0) {
+		pid_t childPid = fork();
+		if (childPid == 0) {
 			// child process continues here
 			// Note: the child path should only be debugged in emergency cases because
-			// the logfile mutex will not be released if set at the time of forking
+			// the logFile mutex will not be released if set at the time of forking
 			// and thus a fraction of the forked processes will hang
 			#if DEBUG & 512
-			Log(sockfd, "CGI Fork Child: Preparing to launch %s", filename);
+			Log(socket, "CGI Fork Child: Preparing to launch %s", fileName);
 			#endif
-			if (send_with_timeout(sockfd, replyheadermempool.mem, replyheadermempool.current) >= 0 ) {
+			if (sendMemPool(socket, &replyHeaderMemPool) >= 0 ) {
 				#if DEBUG & 512
-				Log(sockfd, "CGI Fork Child: Reply header sent for %s", filename);
+				Log(socket, "CGI Fork Child: Reply header sent for %s", fileName);
 				#endif
-				if (dup2(sockfd, 1) == 1) {
+				if (dup2(socket, 1) == 1) {
 					#if DEBUG & 512
-					Log(sockfd, "CGI Fork Child: Executing %s", filename);
+					Log(socket, "CGI Fork Child: Executing %s", fileName);
 					#endif
 					chdir(CGI_DIR);
-					execve(filename, NULL, env); // should never return
+					execve(fileName, NULL, env); // should never return
 				}
 				#if DEBUG & 512
-				Log(sockfd, "CGI Fork Child: Failed to launch %s", filename);
+				Log(socket, "CGI Fork Child: Failed to launch %s", fileName);
 				#endif
 				exit(-1); // exit child process
 			}
 			#if DEBUG & 512
-			Log(sockfd, "CGI Fork Child: Failed to send header for %s", filename);
+			Log(socket, "CGI Fork Child: Failed to send header for %s", fileName);
 			#endif
 			exit(-1); // exit child process
 		}
 		// parent process continues here
-		if (child_pid == -1)
-			goto _senderror500; // fork error
+		if (childPid == -1)
+			goto _sendError500; // fork error
 		// unfortunately it turns out to be better to wait for the child to exit
 		// since otherwise the connection hangs on rare occasions
 		#if DEBUG & 256
-		Log(sockfd, "CGI Fork Parent: waiting for child %d", child_pid);
+		Log(socket, "CGI Fork Parent: waiting for child %d", childPid);
 		#endif
-		waitpid(child_pid, NULL, 0);
+		waitpid(childPid, NULL, 0);
 		#if DEBUG & 256
-		Log(sockfd, "CGI Fork Parent: wait finished for child %d", child_pid);
+		Log(socket, "CGI Fork Parent: wait finished for child %d", childPid);
 		#endif
 		return CONNECTION_CLOSE;
 	}
 	#endif
 
-	if ( mp_add(&filenamepool, DOC_DIR) || mp_extend(&filenamepool, resource) ) 
-		goto _senderror500;
+	if ( memPoolAdd(&fileNamePool, DOC_DIR) || memPoolExtend(&fileNamePool, resource) ) 
+		goto _sendError500;
 
 	statusCode = HTTP_404;
 
-	if (stat(filename, &st)) {
+	if (stat(fileName, &st)) {
 		#if LOG_LEVEL > 2
-		Log(sockfd, "%15s  404  \"STAT %s\"", client, filename);
+		Log(socket, "%15s  404  \"STAT %s\"", client, fileName);
 		#endif
-		goto _senderror;
+		goto _sendError;
 	}
 	
 	#ifdef DEFAULT_INDEX
 	if (S_ISDIR(st.st_mode)) {
-		if(filename[strlen(filename) - 1] != '/') {
+		if(fileName[strlen(fileName) - 1] != '/') {
 			// We cannot simply append "/" DEFAULT_INDEX
 			// because browsers will misinterpret relative links.
 			// Redirecting is difficult due to hex encoding
 			// and query string having been lost at this point.
 			// So let's just admit defeat:
-		goto _senderror;
+		goto _sendError;
 		}
-		if (mp_extend(&filenamepool, DEFAULT_INDEX) != 0)
-			goto _senderror500;
-		if (stat(filename, &st) < 0) {
+		if (memPoolExtend(&fileNamePool, DEFAULT_INDEX) != 0)
+			goto _sendError500;
+		if (stat(fileName, &st) < 0) {
 			#if LOG_LEVEL > 2
-			Log(sockfd, "%15s  404  \"INST %s\"", client, filename);
+			Log(socket, "%15s  404  \"INST %s\"", client, fileName);
 			#endif
-		goto _senderror;
+		goto _sendError;
 		}
 	}
 	#endif
 	
 	if (!S_ISREG(st.st_mode)) {
 		#if LOG_LEVEL > 2
-		Log(sockfd, "%15s  404  \"REGF %s\"", client, filename);
+		Log(socket, "%15s  404  \"REGF %s\"", client, fileName);
 		#endif
-		goto _senderror;
+		goto _sendError;
 	}
 
-	if ((fd = open(filename, O_RDONLY)) < 0) {
+	if ((fd = open(fileName, O_RDONLY)) < 0) {
 		#if LOG_LEVEL > 2
-		Log(sockfd, "%15s  404  \"OPEN %s\"", client, filename);
+		Log(socket, "%15s  404  \"OPEN %s\"", client, fileName);
 		#endif
-		goto _senderror;
+		goto _sendError;
 	}
 
 	#if LOG_LEVEL > 3
-	Log(sockfd, "%15s  000  \"OPEN %s\"", client, filename);
+	Log(socket, "%15s  000  \"OPEN %s\"", client, fileName);
 	#endif
 
 	statusCode = HTTP_200;
 
-_sendfile:
+_sendFile:
 
-	sp_reset(&replyheaderpool);
+	stringPoolReset(&replyHeaderPool);
 	if (
-		sp_add(&replyheaderpool, protocol) ||
-		mp_extend_char(&replyheadermempool, ' ') ||
-		mp_extend(&replyheadermempool, http_code_string[statusCode]) ||
-		sp_add(&replyheaderpool, "Server: " SERVER_SOFTWARE "\r") ||
-		sp_add(&replyheaderpool, "Content-Length: ") ||
-		mp_extend_number(&replyheadermempool, (unsigned) st.st_size) ||
-		mp_extend_char(&replyheadermempool, '\r') ||
-		sp_add(&replyheaderpool, "Content-Type: ") ||
-		mp_extend(&replyheadermempool, mimetype(filename)) ||
-		mp_extend_char(&replyheadermempool, '\r') ||
+		stringPoolAdd(&replyHeaderPool, protocol) ||
+		memPoolExtendChar(&replyHeaderMemPool, ' ') ||
+		memPoolExtend(&replyHeaderMemPool, httpCodeString[statusCode]) ||
+		stringPoolAdd(&replyHeaderPool, "Server: " SERVER_SOFTWARE "\r") ||
+		stringPoolAdd(&replyHeaderPool, "Content-Length: ") ||
+		memPoolExtendNumber(&replyHeaderMemPool, (unsigned) st.st_size) ||
+		memPoolExtendChar(&replyHeaderMemPool, '\r') ||
+		stringPoolAdd(&replyHeaderPool, "Content-Type: ") ||
+		memPoolExtend(&replyHeaderMemPool, mimeType(fileName)) ||
+		memPoolExtendChar(&replyHeaderMemPool, '\r') ||
 		#ifdef PRAGMA
-		sp_add(&replyheaderpool, "Pragma: " PRAGMA "\r") ||
+		stringPoolAdd(&replyHeaderPool, "Pragma: " PRAGMA "\r") ||
 		#endif
-		sp_add(&replyheaderpool, connection_string[connection_state]) ||
-		sp_add(&replyheaderpool, "\r")
+		stringPoolAdd(&replyHeaderPool, connectionString[connectionState]) ||
+		stringPoolAdd(&replyHeaderPool, "\r")
 	) {
 		#if LOG_LEVEL > 0
-		Log(sockfd, "Memory Error preparing reply header for %s", resource);
+		Log(socket, "Memory Error preparing reply header for %s", resource);
 		#endif
 		statusCode = HTTP_500;
-		goto _sendfatal;
+		goto _sendFatal;
 	}
-	mp_replace(&replyheadermempool, '\0', '\n');
+	memPoolReplace(&replyHeaderMemPool, '\0', '\n');
 		
 	#ifdef TCP_CORK // Linux specific
 	int option = 1;
-	setsockopt(sockfd, SOL_TCP, TCP_CORK, &option, sizeof(option));
+	setsockopt(socket, SOL_TCP, TCP_CORK, &option, sizeof(option));
 	#endif
 	
-	if (send_with_timeout(sockfd, replyheadermempool.mem, replyheadermempool.current) >= 0)
-		sendfile_with_timeout(sockfd, fd, st.st_size);
+	if (sendMemPool(socket, &replyHeaderMemPool) >= 0)
+		sendFile(socket, fd, st.st_size);
 	
 	#ifdef TCP_CORK // Linux specific
 	option = 0;
-	setsockopt(sockfd, SOL_TCP, TCP_CORK, &option, sizeof(option));
+	setsockopt(socket, SOL_TCP, TCP_CORK, &option, sizeof(option));
 	#endif
 
 	close(fd);
 
-	return connection_state;
+	return connectionState;
 
-_senderror500:
+_sendError500:
 
 	statusCode = HTTP_500;
 
-_senderror:
+_sendError:
 
 	#ifdef SERVER_DOCS
-	filename = (char *)(http_file[statusCode]);
+	fileName = (char *)(httpFile[statusCode]);
 
-	if (stat(filename, &st) < 0) {
+	if (stat(fileName, &st) < 0) {
 		#if LOG_LEVEL > 0
-		Log(sockfd, "Server Doc Stat Error \"STAT %s\"", filename);
+		Log(socket, "Server Doc Stat Error \"STAT %s\"", fileName);
 		#endif
-		goto _sendfatal;
+		goto _sendFatal;
 	}
-	else if ((fd = open(filename, O_RDONLY)) < 0) {
+	else if ((fd = open(fileName, O_RDONLY)) < 0) {
 		#if LOG_LEVEL > 0
-		Log(sockfd, "Server Doc Open Error  \"OPEN %s\"", filename);
+		Log(socket, "Server Doc Open Error  \"OPEN %s\"", fileName);
 		#endif
-		goto _sendfatal;
+		goto _sendFatal;
 	}
 	
-	goto _sendfile; // send the standard error file
+	goto _sendFile; // send the standard error file
 	#endif
 
 	// fall through if SERVER_DOCS is not defined
 	
-_sendfatal:
+_sendFatal:
 
-	sp_reset(&replyheaderpool);
+	stringPoolReset(&replyHeaderPool);
 	if (
-		sp_add(&replyheaderpool, protocol) ||
-		mp_extend_char(&replyheadermempool, ' ') ||
-		mp_extend(&replyheadermempool, http_code_string[statusCode]) ||
-		sp_add(&replyheaderpool, "Server: " SERVER_SOFTWARE "\r") ||
-		sp_add(&replyheaderpool, "Content-Length: 0\r") ||
+		stringPoolAdd(&replyHeaderPool, protocol) ||
+		memPoolExtendChar(&replyHeaderMemPool, ' ') ||
+		memPoolExtend(&replyHeaderMemPool, httpCodeString[statusCode]) ||
+		stringPoolAdd(&replyHeaderPool, "Server: " SERVER_SOFTWARE "\r") ||
+		stringPoolAdd(&replyHeaderPool, "Content-Length: 0\r") ||
 		#ifdef PRAGMA
-		sp_add(&replyheaderpool, "Pragma: " PRAGMA "\r") ||
+		stringPoolAdd(&replyHeaderPool, "Pragma: " PRAGMA "\r") ||
 		#endif
-		sp_add(&replyheaderpool, connection_string[connection_state]) ||
-		sp_add(&replyheaderpool, "\r")
+		stringPoolAdd(&replyHeaderPool, connectionString[connectionState]) ||
+		stringPoolAdd(&replyHeaderPool, "\r")
 	) {
 		#if LOG_LEVEL > 0
-		Log(sockfd, "Memory Error preparing fatal response %d", statusCode);
+		Log(socket, "Memory Error preparing fatal response %d", statusCode);
 		#endif
 		return CONNECTION_CLOSE;
 	}
-	mp_replace(&replyheadermempool, '\0', '\n');
+	memPoolReplace(&replyHeaderMemPool, '\0', '\n');
 		
-	send_with_timeout(sockfd, replyheadermempool.mem, replyheadermempool.current);
-
-	return connection_state;
+	return sendMemPool(socket, &replyHeaderMemPool) >= 0 ? connectionState : CONNECTION_CLOSE;
 
 }
 

@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.5
+mrhttpd v2.5.0
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -22,45 +22,45 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define LISTEN_QUEUE_LENGTH 1024 //sufficient for all tested load scenarios
 
-int master_fd;
+int masterFd;
 
 int main(void) {
 	int rc;
-	int new_fd;
-	struct sockaddr_in local_addr;
+	int newFd;
+	struct sockaddr_in localAddress;
 	struct passwd *pw;
-	pthread_t thread_id;
+	pthread_t threadId;
 
 	// Obtain master listen socket
-	if ((master_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((masterFd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		puts("Could not create a socket, exiting");
 		exit(1);
 	}
 
 	// Allow re-use of port & address
 	rc = 1;
-	setsockopt(master_fd, SOL_SOCKET, SO_REUSEADDR, (void *) &rc, sizeof(rc));
+	setsockopt(masterFd, SOL_SOCKET, SO_REUSEADDR, (void *) &rc, sizeof(rc));
 
-	local_addr.sin_family = AF_INET;
-	local_addr.sin_port = htons(SERVER_PORT);
-	local_addr.sin_addr.s_addr = INADDR_ANY;
-	memset(&(local_addr.sin_zero), 0, sizeof(local_addr.sin_zero));
+	localAddress.sin_family = AF_INET;
+	localAddress.sin_port = htons(SERVER_PORT);
+	localAddress.sin_addr.s_addr = INADDR_ANY;
+	memset(&(localAddress.sin_zero), 0, sizeof(localAddress.sin_zero));
 
-	if (bind(master_fd, (struct sockaddr *) &local_addr, sizeof(struct sockaddr)) < 0) {
+	if (bind(masterFd, (struct sockaddr *) &localAddress, sizeof(struct sockaddr)) < 0) {
 		puts("Could not bind to port, exiting");
 		exit(1);
 	}
 
-	if (listen(master_fd, LISTEN_QUEUE_LENGTH) < 0) {
+	if (listen(masterFd, LISTEN_QUEUE_LENGTH) < 0) {
 		puts("Could not listen on port, exiting");
 		exit(1);
 	}
 
 	// Set up signal handlers
-	signal(SIGTERM, sigterm_handler);
-	signal(SIGINT,  sigterm_handler);
-	signal(SIGHUP,  sigchld_handler);
-	signal(SIGCHLD, sigchld_handler);
+	signal(SIGTERM, sigtermHandler);
+	signal(SIGINT,  sigtermHandler);
+	signal(SIGHUP,  sigchldHandler);
+	signal(SIGCHLD, sigchldHandler);
 
 	// Ignore SIGPIPE which can be thrown by sendfile()
 	signal(SIGPIPE, SIG_IGN);
@@ -103,7 +103,7 @@ int main(void) {
 	#endif
 	
 	#if (LOG_LEVEL > 0) || (DEBUG > 0)
-	if (!Log_open(master_fd)) {
+	if (!LogOpen(masterFd)) {
 		puts("Could not open log file, exiting");
 		exit(1);
 	}
@@ -121,16 +121,16 @@ int main(void) {
 	// Server loop - exit only via signal handler
 	for (;;) {
 		#if DEBUG & 4
-		Log(master_fd, "Debug: start of accept.");
+		Log(masterFd, "Debug: start of accept.");
 		#endif
-		new_fd = accept(master_fd, NULL, NULL);
+		newFd = accept(masterFd, NULL, NULL);
 		#if DEBUG & 4
-		Log(master_fd, "Debug: return from accept.");
+		Log(masterFd, "Debug: return from accept.");
 		#endif
-		if (new_fd >= 0) {
+		if (newFd >= 0) {
 			// Spawn thread to handle new socket
 			// The cast is a non-portable kludge to implement call-by-value
-			if (pthread_create(&thread_id, NULL, serverthread, (void *) (long) new_fd)) {
+			if (pthread_create(&threadId, NULL, serverThread, (void *) (long) newFd)) {
 				// Creation of thread failed - 
 				// most likely due to thread overload.
 				//
@@ -141,48 +141,48 @@ int main(void) {
 				// so let's just close the socket and
 				// get crunching on the next request.
 				//
-				close(new_fd);
+				close(newFd);
 				#if DEBUG & 128
-				Log(master_fd, "Debug: creation of worker thread failed. Socket = %d", new_fd);
+				Log(masterFd, "Debug: creation of worker thread failed. Socket = %d", newFd);
 				#endif
 			}
 		}
 	}
 }
 
-void *serverthread(void *arg) {
+void *serverThread(void *arg) {
 	// Detach thread - it will terminate on its own
 	pthread_detach(pthread_self());
 
-	const int sockfd = (int) (long) arg; // Non-portable kludge to implement call-by-value;
+	const int socket = (int) (long) arg; // Non-portable kludge to implement call-by-value;
 
 	#if DEBUG & 1
-	Log(sockfd, "Debug: worker thread starting.");
+	Log(socket, "Debug: worker thread starting.");
 	#endif
 	
-	set_timeout(sockfd);
+	setTimeout(socket);
 
-	while (http_request(sockfd) == CONNECTION_KEEPALIVE)
+	while (httpRequest(socket) == CONNECTION_KEEPALIVE)
 		;
 
 	// Do not shut down the socket as this will affect running cgi programs.
 	// Just close the file descriptor.
-	close(sockfd);
+	close(socket);
 	
 	#if DEBUG & 1
-	Log(sockfd, "Debug: worker thread finished.");
+	Log(socket, "Debug: worker thread finished.");
 	#endif
 	
 	return NULL;
 }
 
-void sigterm_handler(const int signal) {
+void sigtermHandler(const int signal) {
 	// Exit fairly gracefully
-	close(master_fd);
+	close(masterFd);
 	sleep(5); // Give threads a chance
 
 	#if (LOG_LEVEL > 0) || (DEBUG > 0)
-	Log_close(master_fd);
+	LogClose(masterFd);
 	#endif
 
 	while(waitpid(-1, NULL, WNOHANG) > 0) // Clean up zombies
@@ -190,7 +190,7 @@ void sigterm_handler(const int signal) {
 	exit(0);
 }
 
-void sigchld_handler(const int signal) {
+void sigchldHandler(const int signal) {
 	while(waitpid(-1, NULL, WNOHANG) > 0) // Clean up zombies
 		;
 }

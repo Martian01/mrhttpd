@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.4.5
+mrhttpd v2.5.0
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -47,71 +47,75 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "config.h"
 
-#define SERVER_SOFTWARE   "mrhttpd/2.4.5"
+#define SERVER_SOFTWARE   "mrhttpd/2.5.0"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"
 
 #define ESTRANGE 1024
 
-enum error_state { ERROR_FALSE, ERROR_TRUE };
+enum errorState { ERROR_FALSE, ERROR_TRUE };
 
-enum connection_state { CONNECTION_KEEPALIVE, CONNECTION_CLOSE };
+enum connectionState { CONNECTION_KEEPALIVE, CONNECTION_CLOSE };
 
 typedef struct {
 	int size;
 	int current;
 	char *mem;
-} mempool;
+} memPool;
 
 typedef struct {
 	int size;
 	int current;
 	char **strings;
-	mempool *mp;
-} stringpool;
+	memPool *mp;
+} stringPool;
 
 // main
 int main(void);
-void *serverthread(void *);
-void sigterm_handler(const int);
-void sigchld_handler(const int);
+void *serverThread(void *);
+void sigtermHandler(const int);
+void sigchldHandler(const int);
 
 // protocol
-enum connection_state http_request(const int);
+enum connectionState httpRequest(const int);
 
 // io
-void set_timeout(const int);
-int recv_header_with_timeout(stringpool *, const int);
-ssize_t send_with_timeout(const int, const char *, const ssize_t);
-ssize_t mysendfile(const int, const int, ssize_t);
-ssize_t sendfile_with_timeout(const int, const int, const ssize_t);
+void setTimeout(const int);
+int receiveHeader(const int, stringPool *, memPool *);
+ssize_t sendMemPool(const int, const memPool *);
+ssize_t sendBuffer(const int, const char *, const ssize_t);
+ssize_t sendFile(const int, const int, const ssize_t);
+ssize_t receiveFile(const int, const int, const ssize_t);
+ssize_t pipeStream(const int, const int, ssize_t);
 
 // mem
-void mp_reset(mempool *);
-enum error_state mp_add(mempool *, const char *);
-enum error_state mp_extend(mempool *, const char *);
-enum error_state mp_extend_char(mempool *, const char);
-enum error_state mp_extend_number(mempool *, const unsigned);
-void mp_replace(mempool *, const char, const char);
-void sp_reset(stringpool *);
-enum error_state sp_add(stringpool *, const char *);
-enum error_state sp_add_variable(stringpool *, const char *, const char *);
-enum error_state sp_add_variable_number(stringpool *, const char *, const unsigned);
-enum error_state sp_add_variables(stringpool *, const stringpool *, const char*);
-char *sp_read_variable(const stringpool *, const char *);
+void memPoolReset(memPool *);
+enum errorState memPoolAdd(memPool *, const char *);
+enum errorState memPoolExtend(memPool *, const char *);
+enum errorState memPoolExtendChar(memPool *, const char);
+enum errorState memPoolExtendNumber(memPool *, const unsigned);
+void memPoolReplace(memPool *, const char, const char);
+int memPoolLineBreak(const memPool *, const int);
+
+void stringPoolReset(stringPool *);
+enum errorState stringPoolAdd(stringPool *, const char *);
+enum errorState stringPoolAddVariable(stringPool *, const char *, const char *);
+enum errorState stringPoolAddVariableNumber(stringPool *, const char *, const unsigned);
+enum errorState stringPoolAddVariables(stringPool *, const stringPool *, const char*);
+char *stringPoolReadVariable(const stringPool *, const char *);
 
 // util
-extern FILE *logfile;
-int Log_open(const int);
-void Log_close(const int);
+extern FILE *logFile;
+int LogOpen(const int);
+void LogClose(const int);
 void Log(const int, const char *, ...);
-const char *mimetype(const char *);
-int hexdigit(const char);
-enum error_state url_decode(const char *, char *, size_t);
-enum error_state filename_encode(const char *, char *, size_t);
-char *str_tolower(char *);
-char *str_toupper(char *);
-char *startof(char *);
+const char *mimeType(const char *);
+int hexDigit(const char);
+enum errorState urlDecode(const char *, char *, size_t);
+enum errorState fileNameEncode(const char *, char *, size_t);
+char *strToLower(char *);
+char *strToUpper(char *);
+char *startOf(char *);
 
 #endif
