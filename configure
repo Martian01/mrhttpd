@@ -29,7 +29,7 @@ echo "Pragma:                $_PRAGMA"
 echo "Log level:             $_LOG_LEVEL"
 echo "Log file:              $_LOG_FILE"
 echo "External file command: $_EXT_FILE_CMD"
-echo "Sendfile option:       $_SENDFILE"
+echo "Sendfile option:       $_USE_SENDFILE"
 echo "Detach option:         $_DETACH"
 echo "Query string hack:     $_QUERY_HACK"
 echo 
@@ -87,6 +87,9 @@ if [ -n "$PUT_PATH" ]; then
 fi
 if [ -n "$DEFAULT_INDEX" ]; then
   echo '#define DEFAULT_INDEX   "'$DEFAULT_INDEX'"' >>config.h
+  if [ "$DEFAULT_INDEX" = "auto" ]; then
+    echo '#define AUTO_INDEX      1' >>config.h
+  fi
 fi
 if [ -n "$PRAGMA" ]; then
   echo '#define PRAGMA          "'$PRAGMA'"' >>config.h
@@ -98,8 +101,8 @@ fi
 if [ -n "$EXT_FILE_CMD" ]; then
   echo '#define EXT_FILE_CMD    "'$EXT_FILE_CMD'"' >>config.h
 fi
-if [ -n "$SENDFILE" ]; then
-  echo '#define SENDFILE        '$SENDFILE >>config.h
+if [ -n "$USE_SENDFILE" ]; then
+  echo '#define USE_SENDFILE        '$USE_SENDFILE >>config.h
 fi
 if [ -n "$DETACH" ]; then
   echo '#define DETACH          '$DETACH >>config.h

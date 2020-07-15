@@ -37,6 +37,13 @@ void memPoolReset(MemPool *mp) {
 	mp->current = 0;
 }
 
+
+void memPoolResetTo(MemPool *mp, int savePosition) {
+	mp->current = savePosition;
+	if (savePosition > 0)
+		mp->mem[savePosition - 1] = '\0';
+}
+
 enum ErrorState memPoolAdd(MemPool *mp, const char *string) {
 	int added;
 

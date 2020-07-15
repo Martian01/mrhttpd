@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define _REENTRANT
 
+#include "config.h"
+
 #include <fcntl.h>
 #include <pthread.h>
 #include <pwd.h>
@@ -44,8 +46,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <errno.h>
-
-#include "config.h"
+#ifdef EXT_FILE_CMD
+#include <unistd.h>
+#endif
+#ifdef AUTO_INDEX
+#include <dirent.h>
+#endif
+#if USE_SENDFILE == 1
+#include <sys/sendfile.h>
+#endif
 
 #define SERVER_SOFTWARE   "mrhttpd/2.5.0"
 
@@ -91,6 +100,7 @@ ssize_t pipeStream(const int, const int, ssize_t);
 
 // mem
 void memPoolReset(MemPool *);
+void memPoolResetTo(MemPool *, int);
 enum ErrorState memPoolAdd(MemPool *, const char *);
 enum ErrorState memPoolExtend(MemPool *, const char *);
 enum ErrorState memPoolExtendChar(MemPool *, const char);
@@ -112,8 +122,9 @@ void LogClose(const int);
 void Log(const int, const char *, ...);
 const char *mimeType(const char *);
 int hexDigit(const char);
-enum ErrorState urlDecode(const char *, char *, size_t);
+enum ErrorState urlDecode(char *);
 enum ErrorState fileNameEncode(const char *, char *, size_t);
+enum ErrorState listDirectory(MemPool *, MemPool *);
 char *strToLower(char *);
 char *strToUpper(char *);
 char *startOf(char *);

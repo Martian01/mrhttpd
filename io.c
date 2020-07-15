@@ -20,10 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mrhttpd.h"
 
-#if SENDFILE == 1
-#include <sys/sendfile.h>
-#endif
-
 #define RECEIVE_TIMEOUT 30
 #define SEND_TIMEOUT 5
 
@@ -176,7 +172,7 @@ ssize_t sendFile(const int socket, const int fd, const ssize_t len) {
 		Log(socket, "SF: loop iteration.");
 		#endif
 
-		#if SENDFILE == 1
+		#if USE_SENDFILE == 1
 		sent = sendfile(socket, fd, NULL, remaining);
 		#else
 		sent = pipeStream(fd, socket, remaining);
@@ -191,7 +187,7 @@ ssize_t sendFile(const int socket, const int fd, const ssize_t len) {
 			#if DEBUG & 2
 			Log(socket, "SF: pipe error. sent=%d, errno=%d", sent, errno);
 			#endif
-			#if SENDFILE == 1
+			#if USE_SENDFILE == 1
 			if (errno == EAGAIN)
 				continue;
 			#endif
@@ -249,7 +245,7 @@ ssize_t receiveFile(const int socket, const int fd, const ssize_t len) {
 }
 #endif
 
-#if SENDFILE == 0 || defined(PUT_PATH)
+#if USE_SENDFILE == 0 || defined(PUT_PATH)
 ssize_t pipeStream(const int in, const int out, ssize_t count) {
 	char buf[16384];
 	ssize_t received, sent;

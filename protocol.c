@@ -36,7 +36,7 @@ enum HttpCodeIndex {
 	HTTP_500,
 	HTTP_501,
 	HTTP_502,
-	HTTP_503,
+	HTTP_503
 };
 
 #ifdef SERVER_DOCS
@@ -86,7 +86,9 @@ const char *connectionString[] = {
 
 enum ConnectionState httpRequest(const int socket) {
 
-	char *hp; 
+	enum ConnectionState connectionState = CONNECTION_CLOSE;
+
+	char *headerLine; 
 	char *method; 
 	char *resource;
 	char *protocol;
@@ -96,8 +98,10 @@ enum ConnectionState httpRequest(const int socket) {
 	struct stat st;
 	
 	int statusCode;
-	int fd;
-	enum ConnectionState connectionState = CONNECTION_CLOSE;
+	int fd = -1;
+
+	unsigned int contentLength;
+	const char *contentType;
 
 	char fileNameBuf[512];
 	MemPool fileNamePool = { sizeof(fileNameBuf), 0, fileNameBuf };
@@ -134,32 +138,37 @@ enum ConnectionState httpRequest(const int socket) {
 	if (receiveHeader(socket, &requestHeaderPool, &generalPurposeMemPool) < 0)
 		return CONNECTION_CLOSE; // socket is in undefined state
 
-	// Identify first token.
-	hp = requestHeader[0];
-	method = strsep(&hp, " ");
+	// Parse first header line
+	headerLine = requestHeader[0];
+	method = strsep(&headerLine, " ");
+	#ifdef PUT_PATH
+	int isUpload = !strcmp(method, "PUT") || !strcmp(method, "POST");
+	if (!isUpload && strcmp(method, "GET")) {
+	#else
 	if (strcmp(method, "GET")) {
+	#endif
 		#if LOG_LEVEL > 0
 		Log(socket, "%15s  501  \"%s\"", client, method);
 		#endif
 		statusCode = HTTP_501;
-		goto _sendError; // method other than GET
+		goto _sendError; // unknown method
 	}
-	if (hp == NULL) {
+	if (headerLine == NULL) {
 		#if LOG_LEVEL > 0
 		Log(socket, "%15s  400  \"%s\"", client, method);
 		#endif
 		statusCode = HTTP_400;
 		goto _sendError; // no resource
 	}
-	resource = strsep(&hp, " ");
-	if (hp == NULL) {
+	resource = strsep(&headerLine, " ");
+	if (headerLine == NULL) {
 		#if LOG_LEVEL > 0
 		Log(socket, "%15s  400  \"%s  %s\"", client, method, resource);
 		#endif
 		statusCode = HTTP_400;
 		goto _sendError; // no protocol
 	}
-	protocol = strsep(&hp, " ");
+	protocol = strsep(&headerLine, " ");
 	#if LOG_LEVEL > 1
 	Log(socket, "%15s  OK   \"%s  %s %s\"", client, method, resource, protocol);
 	#endif
@@ -180,9 +189,9 @@ enum ConnectionState httpRequest(const int socket) {
 
 	query = resource;
 	resource = strsep(&query, "?");
-	if ( urlDecode(resource, resource, 512) ) // space-saving hack: decode in-place
+	if ( urlDecode(resource) ) // space-saving hack: decode in-place
 		goto _sendError500;
-	if ( urlDecode(query, query, 2048) ) // space-saving hack: decode in-place
+	if ( urlDecode(query) ) // space-saving hack: decode in-place
 		goto _sendError500;
 		
 	#ifdef QUERY_HACK
@@ -204,7 +213,6 @@ enum ConnectionState httpRequest(const int socket) {
 			}
 	#endif
 
-
 	if (strstr(resource, "/..")) {
 		#if LOG_LEVEL > 0
 		Log(socket, "%15s  403  \"SEC  %s %s\"", client, resource, protocol);
@@ -214,7 +222,7 @@ enum ConnectionState httpRequest(const int socket) {
 	}
 
 	#ifdef CGI_PATH
-	if (!strncmp(resource, CGI_PATH, strlen(CGI_PATH))) { // presence of CGI URL indicates CGI script
+	if (!strncmp(resource, CGI_PATH, strlen(CGI_PATH))) { // presence of CGI path prefix indicates CGI script
 		if ( memPoolAdd(&fileNamePool, CGI_DIR) || memPoolExtend(&fileNamePool, resource + strlen(CGI_PATH)) )
 			goto _sendError500;
 		if (stat(fileName, &st)) {
@@ -231,7 +239,7 @@ enum ConnectionState httpRequest(const int socket) {
 			statusCode = HTTP_403;
 			goto _sendError;
 		}
-		if (access(fileName, 1)) {
+		if (access(fileName, X_OK)) {
 			#if LOG_LEVEL > 2
 			Log(socket, "%15s  503  \"CGI  %s %s\"", client, fileName, query == NULL ? "" : query);
 			#endif
@@ -319,6 +327,18 @@ enum ConnectionState httpRequest(const int socket) {
 	if ( memPoolAdd(&fileNamePool, DOC_DIR) || memPoolExtend(&fileNamePool, resource) ) 
 		goto _sendError500;
 
+	#ifdef PUT_PATH
+	if (isUpload) {
+		if (strncmp(resource, PUT_PATH, strlen(PUT_PATH))) { // PUT path prefix must be present
+			statusCode = HTTP_400;
+			goto _sendError;
+		}
+		// TODO: upload file
+		statusCode = HTTP_200;
+		goto _sendEmptyResponse;
+	}
+	#endif
+
 	statusCode = HTTP_404;
 
 	if (stat(fileName, &st)) {
@@ -327,16 +347,22 @@ enum ConnectionState httpRequest(const int socket) {
 		#endif
 		goto _sendError;
 	}
-	
+
 	#ifdef DEFAULT_INDEX
 	if (S_ISDIR(st.st_mode)) {
-		if(fileName[strlen(fileName) - 1] != '/') {
+		#ifdef AUTO_INDEX
+		if (listDirectory(&fileNamePool, &generalPurposeMemPool))
+			goto _sendError500;
+		else
+			goto _sendContent200;
+		#else
+		if (fileName[strlen(fileName) - 1] != '/') {
 			// We cannot simply append "/" DEFAULT_INDEX
 			// because browsers will misinterpret relative links.
 			// Redirecting is difficult due to hex encoding
 			// and query string having been lost at this point.
 			// So let's just admit defeat:
-		goto _sendError;
+			goto _sendError;
 		}
 		if (memPoolExtend(&fileNamePool, DEFAULT_INDEX) != 0)
 			goto _sendError500;
@@ -344,8 +370,9 @@ enum ConnectionState httpRequest(const int socket) {
 			#if LOG_LEVEL > 2
 			Log(socket, "%15s  404  \"INST %s\"", client, fileName);
 			#endif
-		goto _sendError;
+			goto _sendError;
 		}
+		#endif
 	}
 	#endif
 	
@@ -367,9 +394,14 @@ enum ConnectionState httpRequest(const int socket) {
 	Log(socket, "%15s  000  \"OPEN %s\"", client, fileName);
 	#endif
 
+_sendContent200:
+
 	statusCode = HTTP_200;
 
-_sendFile:
+_sendContent:
+
+	contentLength = fd < 0 ? (unsigned) generalPurposeMemPool.current : (unsigned) st.st_size;
+	contentType = fd < 0 ? "application/json" : mimeType(fileName);
 
 	stringPoolReset(&replyHeaderPool);
 	if (
@@ -378,10 +410,10 @@ _sendFile:
 		memPoolExtend(&replyHeaderMemPool, httpCodeString[statusCode]) ||
 		stringPoolAdd(&replyHeaderPool, "Server: " SERVER_SOFTWARE "\r") ||
 		stringPoolAdd(&replyHeaderPool, "Content-Length: ") ||
-		memPoolExtendNumber(&replyHeaderMemPool, (unsigned) st.st_size) ||
+		memPoolExtendNumber(&replyHeaderMemPool, contentLength) ||
 		memPoolExtendChar(&replyHeaderMemPool, '\r') ||
 		stringPoolAdd(&replyHeaderPool, "Content-Type: ") ||
-		memPoolExtend(&replyHeaderMemPool, mimeType(fileName)) ||
+		memPoolExtend(&replyHeaderMemPool, contentType) ||
 		memPoolExtendChar(&replyHeaderMemPool, '\r') ||
 		#ifdef PRAGMA
 		stringPoolAdd(&replyHeaderPool, "Pragma: " PRAGMA "\r") ||
@@ -393,7 +425,7 @@ _sendFile:
 		Log(socket, "Memory Error preparing reply header for %s", resource);
 		#endif
 		statusCode = HTTP_500;
-		goto _sendFatal;
+		goto _sendEmptyResponse;
 	}
 	memPoolReplace(&replyHeaderMemPool, '\0', '\n');
 		
@@ -402,15 +434,16 @@ _sendFile:
 	setsockopt(socket, SOL_TCP, TCP_CORK, &option, sizeof(option));
 	#endif
 	
-	if (sendMemPool(socket, &replyHeaderMemPool) >= 0)
-		sendFile(socket, fd, st.st_size);
+	if (sendMemPool(socket, &replyHeaderMemPool) < 0 || (fd < 0 ? sendMemPool(socket, &generalPurposeMemPool) : sendFile(socket, fd, contentLength)) < 0)
+		connectionState = CONNECTION_CLOSE;
 	
 	#ifdef TCP_CORK // Linux specific
 	option = 0;
 	setsockopt(socket, SOL_TCP, TCP_CORK, &option, sizeof(option));
 	#endif
 
-	close(fd);
+	if (fd >= 0)
+		close(fd);
 
 	return connectionState;
 
@@ -427,21 +460,21 @@ _sendError:
 		#if LOG_LEVEL > 0
 		Log(socket, "Server Doc Stat Error \"STAT %s\"", fileName);
 		#endif
-		goto _sendFatal;
+		goto _sendEmptyResponse;
 	}
 	else if ((fd = open(fileName, O_RDONLY)) < 0) {
 		#if LOG_LEVEL > 0
 		Log(socket, "Server Doc Open Error  \"OPEN %s\"", fileName);
 		#endif
-		goto _sendFatal;
+		goto _sendEmptyResponse;
 	}
 	
-	goto _sendFile; // send the standard error file
+	goto _sendContent; // send the standard error file
 	#endif
 
 	// fall through if SERVER_DOCS is not defined
 	
-_sendFatal:
+_sendEmptyResponse:
 
 	stringPoolReset(&replyHeaderPool);
 	if (
@@ -457,7 +490,7 @@ _sendFatal:
 		stringPoolAdd(&replyHeaderPool, "\r")
 	) {
 		#if LOG_LEVEL > 0
-		Log(socket, "Memory Error preparing fatal response %d", statusCode);
+		Log(socket, "Memory Error preparing empty response %d", statusCode);
 		#endif
 		return CONNECTION_CLOSE;
 	}

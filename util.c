@@ -20,10 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mrhttpd.h"
 
-#ifdef EXT_FILE_CMD
-#include <unistd.h>
-#endif
-
 // Log support
 
 #if (LOG_LEVEL > 0) || (DEBUG > 0)
@@ -96,7 +92,7 @@ const char *mimeType(const char *fileName) {
 
 	static const char *(assocNames[][2]) = {
 
-/* the standard mime types should always be present */
+/* the mime types for web content should always be present */
 
 		{ "html",  "text/html" },
 		{ "htm",   "text/html" },
@@ -118,12 +114,15 @@ const char *mimeType(const char *fileName) {
 		{ "wav",   "audio/x-wav" },
 		{ "mid",   "audio/midi" },
 		{ "midi",  "audio/midi" },
-		{ "ra",    "audio/x-pn-realaudio" },
-		{ "ram",   "audio/x-pn-realaudio" },
 		{ "mpeg",  "video/mpeg" },
 		{ "mpg",   "video/mpeg" },
 		{ "mpe",   "video/mpeg" },
+		{ "mp4",   "video/mp4" },
+		{ "3gp",   "video/3gpp" },
+		{ "mov",   "video/quicktime" },
+		{ "wmv",   "video/x-ms-wmv" },
 		{ "avi",   "video/x-msvideo" },
+		{ "json",  "application/json" },
 		{ "xml",   "application/xml" },
 		{ "xsl",   "application/xml" },
 		{ "xslt",  "application/xslt-xml" },
@@ -215,12 +214,12 @@ int hexDigit(const char c) {
 	return -1;
 }
 
-enum ErrorState urlDecode(const char *in, char *out, size_t n) {
-	if (in == NULL)
+enum ErrorState urlDecode(char *buffer) {
+	if (buffer == NULL)
 		return ERROR_FALSE; // allowed
-	for (; (*out = *in) != '\0'; in++, out++, n--) {
-		if (n < 2)
-			return ERROR_TRUE; // out of space
+	char *in, *out;
+	in = out = buffer;
+	for (; (*out = *in) != '\0'; in++, out++) {
 		if (*in == '%') {
 			int lo, hi;
 			hi = hexDigit(in[1]);
@@ -236,25 +235,75 @@ enum ErrorState urlDecode(const char *in, char *out, size_t n) {
 	return ERROR_FALSE; // success
 }
 
-enum ErrorState fileNameEncode(const char *in, char *out, size_t n) {
+enum ErrorState fileNameEncode(const char *in, char *out, size_t outLength) {
 	if (in == NULL)
 		return ERROR_FALSE; // allowed
-	for (; (*out = *in) != '\0'; in++, out ++, n--) {
-		if (n < 2)
+	for (; (*out = *in) != '\0'; in++, out ++, outLength--) {
+		if (outLength < 2)
 			return ERROR_TRUE; // out of space
 		if (*in == '/') {
-			if (n < 4)
+			if (outLength < 4)
 				return ERROR_TRUE; // out of space
 			*out++ = '%';
 			*out++ = '2';
 			*out   = 'F';
-			n-=2;
+			outLength-=2;
 		}
 	}
 	return ERROR_FALSE; // success
 }
 
 // Miscellaneous
+
+#ifdef AUTO_INDEX
+enum ErrorState listDirectory(MemPool *fileNamePool, MemPool *result) {
+	struct dirent *dp;
+	int found = 0;
+
+	if (fileNamePool->current < 2)
+		return ERROR_TRUE;
+	if (fileNamePool->mem[fileNamePool->current - 2] != '/' && memPoolExtendChar(fileNamePool, '/'))
+		return ERROR_TRUE;
+	int savePosition = fileNamePool->current;
+	DIR *dir = opendir(fileNamePool->mem);
+	if (dir == NULL)
+		return ERROR_TRUE;
+
+	memPoolReset(result);
+	if (memPoolExtendChar(result, '['))
+		return ERROR_TRUE;
+	while ((dp = readdir(dir)) != NULL) {
+		if (strncmp(dp->d_name, ".", 1)) {
+			memPoolExtend(fileNamePool, dp->d_name);
+			struct stat st;
+			if (stat(fileNamePool->mem, &st) < 0)
+				return ERROR_TRUE;
+			memPoolResetTo(fileNamePool, savePosition);
+			unsigned fileSize = st.st_size;
+			const char *fileType = S_ISDIR(st.st_mode) ? "dir" : (S_ISREG(st.st_mode) ? mimeType(dp->d_name) : "unknown");
+			if (found++ > 0 && memPoolExtendChar(result, ','))
+				return ERROR_TRUE;
+			if (
+				memPoolExtendChar(result, '{') ||
+				memPoolExtend(result, "\"name\":\"") ||
+				memPoolExtend(result, dp->d_name) ||
+				memPoolExtend(result, "\",") ||
+				memPoolExtend(result, "\"type\":\"") ||
+				memPoolExtend(result, fileType) ||
+				memPoolExtend(result, "\",") ||
+				memPoolExtend(result, "\"size\":") ||
+				memPoolExtendNumber(result, fileSize) ||
+				memPoolExtendChar(result, '}')
+			)
+				return ERROR_TRUE;
+		}
+	}
+	if (memPoolExtendChar(result, ']'))
+		return ERROR_TRUE;
+	result->current--; // remove trailing '\0' character
+	return ERROR_FALSE;
+}
+#endif
 
 char *strToLower(char *string) {
 	char *cp;

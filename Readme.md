@@ -130,7 +130,7 @@ Note: the external file command and all its dependencies are relative to SERVER_
  * lib/libc.so.6
  * etc/file/magic/*
 
-#### SENDFILE
+#### USE_SENDFILE
 chooses which implementation is used for sending files. The choice is between a routine in user space and the kernel function sendfile(). Whilst the latter promises better performance and lower cpu load, you might want to choose the user space routine for trouble shooting. Also, on operating systems other than Linux you need to select the user space routine.
 
 #### DETACH
@@ -214,7 +214,7 @@ If your system uses systemd you might want to use a service file similar to the 
 
 ## Performance
 
-Performance testing is a difficult topic. Particularly when you venture into extreme load scenarios.However, in order to detect regressions and ensure stability in normal operations I now routinely execute a high load performance test script as part of every release of mrhttpd.
+Performance testing is a difficult topic. Particularly when you venture into extreme load scenarios. However, in order to detect regressions and ensure stability in normal operations I now routinely execute a high load performance test script as part of every release of mrhttpd.
 
 For release 2.2 I ran the tests on my main development machine which has an Intel Core i3-530 CPU at 3500 MHz and 4GB of RAM. The CPU offers two cores with hyperthreading, resulting in 4 logical processors. The operating system was Slackware 13.37 (plus a few upgrades from Slackware Current). I ran all tests on two kernels, namely on vanilla 3.1.4 and on 3.1.4-ck2, the latter containing the BFS scheduler and the interactivity patches provided by Con Kolivas (http://ck-hack.blogspot.com/).
 

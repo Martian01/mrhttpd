@@ -112,17 +112,17 @@ if [ -z "$EXT_FILE_CMD" ]; then
 else
   _EXT_FILE_CMD=$EXT_FILE_CMD
 fi
-if [ -z "$SENDFILE" ]; then
+if [ -z "$USE_SENDFILE" ]; then
   OS=$(uname) 2> /dev/null
   if [ "$OS" = "Linux" ]; then
-    SENDFILE=1
+    USE_SENDFILE=1
   else
-    SENDFILE=0
+    USE_SENDFILE=0
   fi
-  _SENDFILE="missing, set to: $SENDFILE"
+  _USE_SENDFILE="missing, set to: $USE_SENDFILE"
   WARNING=yes
 else
-  _SENDFILE=$SENDFILE
+  _USE_SENDFILE=$USE_SENDFILE
 fi
 if [ -z "$DETACH" ]; then
   _DETACH="missing, default: 1"
