@@ -93,6 +93,8 @@ defines the URL prefix and the base directory for uploads. A PUT or POST request
 #### DEFAULT_INDEX
 defines the name of the default file in a directory. Typically you use "index.html" or similar. mrhttpd will serve this file if no file name is specified in the URL. For example, if a client requests http://server/path/ mrhttpd will try to send http://server/path/index.html.
 
+As an experimental feature you can specify "auto" to generate directory listings in JSON format.
+
 #### PRAGMA
 specifies an optional Pragma parameter that is sent with every HTTP reply. A typical value is "no-cache" if you want to suppress caching by proxy servers and frontends.
 
