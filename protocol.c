@@ -98,6 +98,7 @@ enum ConnectionState httpRequest(const int socket) {
 	struct stat st;
 	
 	int statusCode;
+	FILE *file = NULL;
 	int fd = -1;
 
 	unsigned int contentLength;
@@ -119,11 +120,6 @@ enum ConnectionState httpRequest(const int socket) {
 	MemPool replyHeaderMemPool = { sizeof(replyHeaderBuf), 0, replyHeaderBuf };
 	char *replyHeader[16];
 	StringPool replyHeaderPool = { sizeof(replyHeader), 0, replyHeader, &replyHeaderMemPool };
-
-	#ifdef CGI_PATH
-	char *env[96];
-	StringPool envPool = { sizeof(env), 0, env, &generalPurposeMemPool };
-	#endif
 
 	#if LOG_LEVEL > 0 || defined(CGI_PATH)
 	struct sockaddr_in sa;
@@ -222,6 +218,9 @@ enum ConnectionState httpRequest(const int socket) {
 	}
 
 	#ifdef CGI_PATH
+	char *env[96];
+	StringPool envPool = { sizeof(env), 0, env, &generalPurposeMemPool };
+
 	if (!strncmp(resource, CGI_PATH, strlen(CGI_PATH))) { // presence of CGI path prefix indicates CGI script
 		if ( memPoolAdd(&fileNamePool, CGI_DIR) || memPoolExtend(&fileNamePool, resource + strlen(CGI_PATH)) )
 			goto _sendError500;
@@ -351,10 +350,22 @@ enum ConnectionState httpRequest(const int socket) {
 	#ifdef DEFAULT_INDEX
 	if (S_ISDIR(st.st_mode)) {
 		#ifdef AUTO_INDEX
-		if (listDirectory(&fileNamePool, &generalPurposeMemPool))
+		file = tmpfile();
+		if (file == NULL)
 			goto _sendError500;
-		else
-			goto _sendContent200;
+		if (fileWriteDirectory(file, &fileNamePool)) {
+			fclose(file);
+			goto _sendError500;
+		}
+		fflush(file);
+		rewind(file);
+		fd = fileno(file);
+		if (fd < 0 || fstat(fd, &st)) {
+			fclose(file);
+			goto _sendError500;
+		}
+		contentType = "application/json";
+		goto _sendFile200;
 		#else
 		if (fileName[strlen(fileName) - 1] != '/') {
 			// We cannot simply append "/" DEFAULT_INDEX
@@ -383,26 +394,27 @@ enum ConnectionState httpRequest(const int socket) {
 		goto _sendError;
 	}
 
-	if ((fd = open(fileName, O_RDONLY)) < 0) {
+	fd = open(fileName, O_RDONLY);
+
+	if (fd < 0) {
 		#if LOG_LEVEL > 2
 		Log(socket, "%15s  404  \"OPEN %s\"", client, fileName);
 		#endif
 		goto _sendError;
 	}
 
+	contentType = mimeType(fileName);
+
+_sendFile200:
+
 	#if LOG_LEVEL > 3
 	Log(socket, "%15s  000  \"OPEN %s\"", client, fileName);
 	#endif
-
-_sendContent200:
-
 	statusCode = HTTP_200;
 
-_sendContent:
+_sendFile:
 
-	contentLength = fd < 0 ? (unsigned) generalPurposeMemPool.current : (unsigned) st.st_size;
-	contentType = fd < 0 ? "application/json" : mimeType(fileName);
-
+	contentLength = (unsigned) st.st_size;
 	stringPoolReset(&replyHeaderPool);
 	if (
 		stringPoolAdd(&replyHeaderPool, protocol) ||
@@ -434,7 +446,7 @@ _sendContent:
 	setsockopt(socket, SOL_TCP, TCP_CORK, &option, sizeof(option));
 	#endif
 	
-	if (sendMemPool(socket, &replyHeaderMemPool) < 0 || (fd < 0 ? sendMemPool(socket, &generalPurposeMemPool) : sendFile(socket, fd, contentLength)) < 0)
+	if (sendMemPool(socket, &replyHeaderMemPool) < 0 || sendFile(socket, fd, contentLength) < 0)
 		connectionState = CONNECTION_CLOSE;
 	
 	#ifdef TCP_CORK // Linux specific
@@ -442,7 +454,9 @@ _sendContent:
 	setsockopt(socket, SOL_TCP, TCP_CORK, &option, sizeof(option));
 	#endif
 
-	if (fd >= 0)
+	if (file != NULL)
+		fclose(file);
+	else
 		close(fd);
 
 	return connectionState;
@@ -455,6 +469,7 @@ _sendError:
 
 	#ifdef SERVER_DOCS
 	fileName = (char *)(httpFile[statusCode]);
+	contentType = "text/html";
 
 	if (stat(fileName, &st) < 0) {
 		#if LOG_LEVEL > 0
@@ -469,7 +484,7 @@ _sendError:
 		goto _sendEmptyResponse;
 	}
 	
-	goto _sendContent; // send the standard error file
+	goto _sendFile; // send the standard error file
 	#endif
 
 	// fall through if SERVER_DOCS is not defined

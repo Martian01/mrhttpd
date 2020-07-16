@@ -80,6 +80,8 @@ typedef struct {
 	MemPool *mp;
 } StringPool;
 
+static char digit[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+
 // main
 int main(void);
 void *serverThread(void *);
@@ -107,7 +109,7 @@ enum ErrorState memPoolExtendChar(MemPool *, const char);
 enum ErrorState memPoolExtendNumber(MemPool *, const unsigned);
 void memPoolReplace(MemPool *, const char, const char);
 int memPoolLineBreak(const MemPool *, const int);
-
+//
 void stringPoolReset(StringPool *);
 enum ErrorState stringPoolAdd(StringPool *, const char *);
 enum ErrorState stringPoolAddVariable(StringPool *, const char *, const char *);
@@ -124,7 +126,10 @@ const char *mimeType(const char *);
 int hexDigit(const char);
 enum ErrorState urlDecode(char *);
 enum ErrorState fileNameEncode(const char *, char *, size_t);
-enum ErrorState listDirectory(MemPool *, MemPool *);
+enum ErrorState fileWriteChar(FILE *, const char);
+enum ErrorState fileWriteNumber(FILE *, const unsigned);
+enum ErrorState fileWriteString(FILE *, const char *);
+enum ErrorState fileWriteDirectory(FILE *, MemPool *);
 char *strToLower(char *);
 char *strToUpper(char *);
 char *startOf(char *);

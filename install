@@ -46,7 +46,8 @@ if [ -n "$LOG_FILE" ] ; then
     chown $SYSTEM_USER: $SERVER_ROOT$LOG_FILE
   fi
 fi
-
-
-
-
+if [ -n "$DEFAULT_INDEX" ]; then
+  if [ "$DEFAULT_INDEX" = "auto" ]; then
+    mkdir -p $SERVER_ROOT/tmp
+  fi
+fi

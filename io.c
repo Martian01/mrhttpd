@@ -295,3 +295,61 @@ ssize_t pipeStream(const int in, const int out, ssize_t count) {
 	return total;
 }
 #endif
+
+/*#ifdef AUTO_INDEX
+enum ErrorState senDirectory(const int socket, MemPool *fileNamePool, MemPool *result) {
+	struct dirent *dp;
+	int found = 0;
+
+	if (fileNamePool->current < 2)
+		return ERROR_TRUE;
+	if (fileNamePool->mem[fileNamePool->current - 2] != '/' && memPoolExtendChar(fileNamePool, '/'))
+		return ERROR_TRUE;
+	int savePosition = fileNamePool->current;
+	DIR *dir = opendir(fileNamePool->mem);
+	if (dir == NULL)
+		return ERROR_TRUE;
+
+	memPoolReset(result);
+	if (memPoolExtendChar(result, '['))
+		return ERROR_TRUE;
+	while ((dp = readdir(dir)) != NULL) {
+		if (strncmp(dp->d_name, ".", 1)) {
+			memPoolExtend(fileNamePool, dp->d_name);
+			struct stat st;
+			if (stat(fileNamePool->mem, &st) < 0)
+				return ERROR_TRUE;
+			memPoolResetTo(fileNamePool, savePosition);
+			unsigned fileSize = st.st_size;
+			const char *fileType = S_ISDIR(st.st_mode) ? "dir" : (S_ISREG(st.st_mode) ? mimeType(dp->d_name) : "unknown");
+			if (found++ > 0 && memPoolExtendChar(result, ','))
+				return ERROR_TRUE;
+			if (
+				memPoolExtendChar(result, '{') ||
+				memPoolExtend(result, "\"name\":\"") ||
+				memPoolExtend(result, dp->d_name) ||
+				memPoolExtend(result, "\",") ||
+				memPoolExtend(result, "\"type\":\"") ||
+				memPoolExtend(result, fileType) ||
+				memPoolExtend(result, "\",") ||
+				memPoolExtend(result, "\"size\":") ||
+				memPoolExtendNumber(result, fileSize) ||
+				memPoolExtendChar(result, '}')
+			)
+				return ERROR_TRUE;
+			if (result->size - result->current < 256) {
+				result->current--; // remove trailing '\0' character
+				if (sendMemPool(socket, result))
+					return ERROR_TRUE;
+				memPoolReset(result);
+			}
+		}
+	}
+	if (memPoolExtendChar(result, ']'))
+		return ERROR_TRUE;
+	result->current--; // remove trailing '\0' character
+	if (sendMemPool(socket, result))
+		return ERROR_TRUE;
+	return ERROR_FALSE;
+}
+#endif*/

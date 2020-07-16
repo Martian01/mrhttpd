@@ -256,7 +256,21 @@ enum ErrorState fileNameEncode(const char *in, char *out, size_t outLength) {
 // Miscellaneous
 
 #ifdef AUTO_INDEX
-enum ErrorState listDirectory(MemPool *fileNamePool, MemPool *result) {
+
+enum ErrorState fileWriteChar(FILE *file, const char c) {
+	return fputc(c, file) != c;
+}
+
+enum ErrorState fileWriteNumber(FILE *file, const unsigned num) {
+	return num < 10 ? fileWriteChar(file, digit[num]) : (fileWriteNumber(file, num / 10) || fileWriteChar(file, digit[num % 10]));
+}
+
+enum ErrorState fileWriteString(FILE *file, const char *str) {
+	int len = strlen(str);
+	return fwrite(str, 1, len, file) != len;
+}
+
+enum ErrorState fileWriteDirectory(FILE *file, MemPool *fileNamePool) {
 	struct dirent *dp;
 	int found = 0;
 
@@ -269,8 +283,7 @@ enum ErrorState listDirectory(MemPool *fileNamePool, MemPool *result) {
 	if (dir == NULL)
 		return ERROR_TRUE;
 
-	memPoolReset(result);
-	if (memPoolExtendChar(result, '['))
+	if (fileWriteChar(file, '['))
 		return ERROR_TRUE;
 	while ((dp = readdir(dir)) != NULL) {
 		if (strncmp(dp->d_name, ".", 1)) {
@@ -281,26 +294,25 @@ enum ErrorState listDirectory(MemPool *fileNamePool, MemPool *result) {
 			memPoolResetTo(fileNamePool, savePosition);
 			unsigned fileSize = st.st_size;
 			const char *fileType = S_ISDIR(st.st_mode) ? "dir" : (S_ISREG(st.st_mode) ? mimeType(dp->d_name) : "unknown");
-			if (found++ > 0 && memPoolExtendChar(result, ','))
+			if (found++ > 0 && fileWriteChar(file, ','))
 				return ERROR_TRUE;
 			if (
-				memPoolExtendChar(result, '{') ||
-				memPoolExtend(result, "\"name\":\"") ||
-				memPoolExtend(result, dp->d_name) ||
-				memPoolExtend(result, "\",") ||
-				memPoolExtend(result, "\"type\":\"") ||
-				memPoolExtend(result, fileType) ||
-				memPoolExtend(result, "\",") ||
-				memPoolExtend(result, "\"size\":") ||
-				memPoolExtendNumber(result, fileSize) ||
-				memPoolExtendChar(result, '}')
+				fileWriteChar(file, '{') ||
+				fileWriteString(file, "\"name\":\"") ||
+				fileWriteString(file, dp->d_name) ||
+				fileWriteString(file, "\",") ||
+				fileWriteString(file, "\"type\":\"") ||
+				fileWriteString(file, fileType) ||
+				fileWriteString(file, "\",") ||
+				fileWriteString(file, "\"size\":") ||
+				fileWriteNumber(file, fileSize) ||
+				fileWriteChar(file, '}')
 			)
 				return ERROR_TRUE;
 		}
 	}
-	if (memPoolExtendChar(result, ']'))
+	if (fileWriteChar(file, ']'))
 		return ERROR_TRUE;
-	result->current--; // remove trailing '\0' character
 	return ERROR_FALSE;
 }
 #endif

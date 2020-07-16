@@ -88,13 +88,7 @@ enum ErrorState memPoolExtendChar(MemPool *mp, const char c) {
 }
 
 enum ErrorState memPoolExtendNumber(MemPool *mp, const unsigned num) {
-	static char digit[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-	
-	if (num < 10)
-		return memPoolExtendChar(mp, digit[num]);
-		
-	return memPoolExtendNumber(mp, num / 10 ) || memPoolExtendChar(mp, digit[num % 10]);
-
+	return num < 10 ? memPoolExtendChar(mp, digit[num]) : (memPoolExtendNumber(mp, num / 10 ) || memPoolExtendChar(mp, digit[num % 10]));
 }
 
 void memPoolReplace(MemPool *mp, const char from, const char to) {
