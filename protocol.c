@@ -345,6 +345,9 @@ enum ConnectionState httpRequest(const int socket) {
 			#endif
 			goto _sendError500;
 		}
+		#if DEBUG & 1024
+		Log(socket, "contentLength=\"%u\", overspill=\"%d\"", contentLength, streamMemPool.current);
+		#endif
 		if (contentLength > 0 && streamMemPool.current > 0) { // overspill from receiveHeader()
 			unsigned size = contentLength;
 			if (streamMemPool.current < size)
@@ -358,7 +361,10 @@ enum ConnectionState httpRequest(const int socket) {
 			}
 			contentLength -= size;
 		}
-		if (contentLength > 0 && pipeStream(socket, uploadFile, contentLength) < 0) {
+		#if DEBUG & 1024
+		Log(socket, "remaining=\"%u\"", contentLength);
+		#endif
+		if (contentLength > 0 && pipeToFile(socket, uploadFile, contentLength) < 0) {
 			#if LOG_LEVEL > 2
 			Log(socket, "%15s  500  \"PUT pipe error\"", client);
 			#endif
@@ -497,7 +503,7 @@ _sendFile:
 	setsockopt(socket, SOL_TCP, TCP_CORK, &option, sizeof(option));
 	#endif
 	
-	if (sendMemPool(socket, &replyHeaderMemPool) < 0 || sendFile(fd, socket, contentLength) < 0)
+	if (sendMemPool(socket, &replyHeaderMemPool) < 0 || sendFile(socket, fd, contentLength) < 0)
 		connectionState = CONNECTION_CLOSE;
 	
 	#ifdef TCP_CORK // Linux specific

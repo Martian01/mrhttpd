@@ -58,7 +58,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #if USE_SENDFILE == 1
 #include <sys/sendfile.h>
 #else
-#define sendFile(in, out, count) pipeStream(in, out, count)
+#define sendFile(socket, fd, count) pipeToSocket(socket, fd, count)
 #endif
 
 #define SERVER_SOFTWARE   "mrhttpd/2.5.0"
@@ -100,7 +100,8 @@ int receiveHeader(const int, StringPool *, MemPool *);
 ssize_t sendMemPool(const int, const MemPool *);
 ssize_t sendBuffer(const int, const char *, const ssize_t);
 ssize_t sendFile(const int, const int, const ssize_t);
-ssize_t pipeStream(const int, const int, ssize_t);
+ssize_t pipeToSocket(const int, const int, const ssize_t);
+ssize_t pipeToFile(const int, const int, const ssize_t);
 
 // mem
 void memPoolReset(MemPool *);

@@ -123,57 +123,50 @@ ssize_t sendMemPool(const int socket, const MemPool *mp) {
 	return sendBuffer(socket, mp->mem, mp->current);
 }
 
-ssize_t sendBuffer(const int socket, const char *buf, const ssize_t len) {
-	ssize_t numBytes, sent, remaining;
+ssize_t sendBuffer(const int socket, const char *buf, const ssize_t count) {
+	ssize_t totalSent = 0, sent;
 
-	numBytes = 0;
-	remaining = len;
-
-	while (remaining > 0) {
+	while (totalSent < count) {
 		#if DEBUG & 2
-		Log(socket, "sendBuffer:  loop iteration.");
+		Log(socket, "sendBuffer: loop iteration.");
 		#endif
-		sent = send(socket, buf + numBytes, remaining, MSG_NOSIGNAL);
+		sent = send(socket, buf + totalSent, count - totalSent, MSG_NOSIGNAL);
 		if (sent == 0) {
 			#if DEBUG & 2
-			Log(socket, "sendBuffer:  send strangeness. sent=%d", sent);
+			Log(socket, "sendBuffer: send strangeness. sent=%d", sent);
 			#endif
 			return -ESTRANGE; // error
 		}
 		if (sent < 0) {
 			#if DEBUG & 2
-			Log(socket, "sendBuffer:  send error. sent=%d, errno=%d", sent, errno);
+			Log(socket, "sendBuffer: send error. sent=%d, errno=%d", sent, errno);
 			#endif
 			//if (errno == EAGAIN)
 			//	continue;
 			return sent; // propagate error
 		}
-		numBytes += sent;
-		remaining -= sent;
+		totalSent += sent;
 		#if DEBUG & 2
-		Log(socket, "sendBuffer:  send OK. sent=%d", sent);
+		Log(socket, "sendBuffer: inside loop. sent=%d", sent);
 		#endif
 	}
 
 	#if DEBUG & 2
-	Log(socket, "sendBuffer:  return OK. numBytes=%d", numBytes);
+	Log(socket, "sendBuffer: return OK. totalSent=%d", totalSent);
 	#endif
-	return numBytes;
+	return totalSent;
 }
 
 #if USE_SENDFILE == 1
-ssize_t sendFile(const int fd, const int socket, const ssize_t count) {
-	ssize_t numBytes, remaining, sent;
+ssize_t sendFile(const int socket, const int fd, const ssize_t count) {
+	ssize_t totalSent = 0, sent;
 
-	numBytes = 0;
-	remaining = count;
-
-	while (remaining > 0) {
+	while (totalSent < count) {
 		#if DEBUG & 2
 		Log(socket, "sendFile: loop iteration.");
 		#endif
 
-		sent = sendfile(socket, fd, NULL, remaining);
+		sent = sendfile(socket, fd, NULL, count - totalSent);
 		if (sent == 0) {
 			#if DEBUG & 2
 			Log(socket, "SsendFileF: pipe strangeness. sent=%d", sent);
@@ -188,67 +181,99 @@ ssize_t sendFile(const int fd, const int socket, const ssize_t count) {
 			//	continue;
 			return sent; // propagate error
 		}
-		numBytes += sent;
-		remaining -= sent;
 		#if DEBUG & 2
-		Log(socket, "sendFile: send OK. sent=%d", sent);
+		Log(socket, "sendFile: inside loop. sent=%d", sent);
 		#endif
+		totalSent += sent;
 	}
 
 	#if DEBUG & 2
-	Log(socket, "sendFile: return OK. numBytes=%d", numBytes);
+	Log(socket, "sendFile: return OK. totalSent=%d", totalSent);
 	#endif
-	return numBytes;
+	return totalSent;
 }
 #endif
 
-#if USE_SENDFILE != 1 || defined(PUT_PATH)
-ssize_t pipeStream(const int in, const int out, ssize_t count) {
+#if USE_SENDFILE != 1
+ssize_t pipeToSocket(const int socket, const int fd, const ssize_t count) {
 	char buf[16384];
 	ssize_t received, sent;
-	ssize_t remainingToBeSent;
-	ssize_t remainingToBeRead = count;
-	ssize_t total = 0;
+	ssize_t totalReceived = 0, totalSent = 0;
 
 	#if DEBUG & 2
-	Log(out, "pipeStream:  entering.");
+	Log(socket, "pipeToSocket: entering.");
 	#endif
-	while (count == 0 || remainingToBeRead > 0) {
-		received = read(in, buf, (count == 0 || remainingToBeRead >= sizeof(buf)) ? sizeof(buf) : remainingToBeRead );
+	while (totalReceived < count) {
+		int toBeRead = count - totalReceived;
+		received = read(fd, buf, toBeRead >= sizeof(buf) ? sizeof(buf) : toBeRead);
 		if (received == 0) {
 			#if DEBUG & 2
-			Log(out, "pipeStream:  side exit. received=%d, total=%d", received, total);
+			Log(socket, "pipeToSocket: side exit. totalReceived=%d, totalSent=%d", totalReceived, totalSent);
 			#endif
-			return total;
+			return totalSent;
 		}
 		if (received < 0) {
 			#if DEBUG & 2
-			Log(out, "pipeStream:  read error. received=%d, errno=%d", received, errno);
+			Log(socket, "pipeToSocket: read error. received=%d, errno=%d", received, errno);
+			#endif
+			return received; // propagate error
+		}
+		sent = sendBuffer(socket, buf, received);
+		if (sent < 0) {
+			#if DEBUG & 2
+			Log(socket, "pipeToSocket: send error. sent=%d, errno=%d", sent, errno);
+			#endif
+			return sent; // propagate error
+		}
+		totalSent += sent;
+		totalReceived += received;
+	}
+	#if DEBUG & 2
+	Log(socket, "pipeToSocket: main exit. totalReceived=%d, totalSent=%d", totalReceived, totalSent);
+	#endif
+	return totalSent;
+}
+#endif
+
+#ifdef PUT_PATH
+ssize_t pipeToFile(const int socket, const int fd, const ssize_t count) {
+	char buf[16384];
+	ssize_t received, sent;
+	ssize_t totalReceived = 0, totalSent = 0;
+
+	#if DEBUG & 2
+	Log(socket, "pipeToFile:s entering.");
+	#endif
+	while (totalReceived < count) {
+		int toBeRead = count - totalReceived;
+		received = recv(socket, buf, toBeRead >= sizeof(buf) ? sizeof(buf) : toBeRead, 0);
+		if (received == 0) {
+			#if DEBUG & 2
+			Log(socket, "pipeToFile: side exit. totalReceived=%d, totalSent=%d", totalReceived, totalSent);
+			#endif
+			return totalSent;
+		}
+		if (received < 0) {
+			#if DEBUG & 2
+			Log(socket, "pipeToFile: recv error. received=%d, errno=%d", received, errno);
 			#endif
 			//if (errno == EAGAIN)
 			//	continue;
 			return received; // propagate error
 		}
-		remainingToBeSent = received;
-		while (remainingToBeSent > 0) {
-			sent = sendBuffer(out, buf, remainingToBeSent);
-			if (sent < 0) {
-				#if DEBUG & 2
-				Log(out, "pipeStream:  send error. sent=%d", sent);
-				#endif
-				//if (errno == EAGAIN)
-				//	continue;
-				return sent; // propagate error
-			}
-			remainingToBeSent -= sent;
+		sent = write(fd, buf, received);
+		if (sent < 0) {
+			#if DEBUG & 2
+			Log(socket, "pipeToFile: write error. sent=%d, errno=%d", sent, errno);
+			#endif
+			return sent; // propagate error
 		}
-		total += received;
-		if (count > 0)
-			remainingToBeRead -= received;
+		totalSent += sent;
+		totalReceived += received;
 	}
 	#if DEBUG & 2
-	Log(out, "pipeStream:  main exit. total=%d", total);
+			Log(socket, "pipeToFile: main exit. totalReceived=%d, totalSent=%d", totalReceived, totalSent);
 	#endif
-	return total;
+	return totalSent;
 }
 #endif
