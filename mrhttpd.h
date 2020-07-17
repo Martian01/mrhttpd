@@ -80,8 +80,6 @@ typedef struct {
 	MemPool *mp;
 } StringPool;
 
-static char digit[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-
 // main
 int main(void);
 void *serverThread(void *);
@@ -118,6 +116,7 @@ enum ErrorState stringPoolAddVariables(StringPool *, const StringPool *, const c
 char *stringPoolReadVariable(const StringPool *, const char *);
 
 // util
+extern char digit[];
 extern FILE *logFile;
 int LogOpen(const int);
 void LogClose(const int);
@@ -130,6 +129,7 @@ enum ErrorState fileWriteChar(FILE *, const char);
 enum ErrorState fileWriteNumber(FILE *, const unsigned);
 enum ErrorState fileWriteString(FILE *, const char *);
 enum ErrorState fileWriteDirectory(FILE *, MemPool *);
+int openFileForWriting(MemPool *, char *);
 char *strToLower(char *);
 char *strToUpper(char *);
 char *startOf(char *);

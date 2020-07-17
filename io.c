@@ -47,26 +47,26 @@ _readFresh:
 
 _readMore:
 	#if DEBUG & 8
-	Log(socket, "RHWT: read loop iteration.");
+	Log(socket, "receiveHeader: read loop iteration.");
 	#endif
 
 	received = recv(socket, buffer->mem + buffer->current, buffer->size - buffer->current, 0);
 	if (received == 0) {
 		#if DEBUG & 8
-		Log(socket, "RH: recv strangeness. received=%d", received);
+		Log(socket, "receiveHeader: recv strangeness. received=%d", received);
 		#endif
 		return -ESTRANGE; // error
 	}
 	if (received < 0) {
 		#if DEBUG & 8
-		Log(socket, "RH: recv error. received=%d, errno=%d", received, errno);
+		Log(socket, "receiveHeader: recv error. received=%d, errno=%d", received, errno);
 		#endif
-		if (errno == EAGAIN)
-			goto _readMore;
+		//if (errno == EAGAIN)
+		//	goto _readMore;
 		return received; // propagate error
 	}
 	#if DEBUG & 8
-	Log(socket, "RH: recv OK. received=%d", received);
+	Log(socket, "receiveHeader: recv OK. received=%d", received);
 	#endif
 	buffer->current += received;
 	cursor = 0; // cursor positioned on beginning of line
@@ -74,7 +74,7 @@ _readMore:
 _parseNextLine:
 	delim = memPoolLineBreak(buffer, cursor); // search for end of line
 	#if DEBUG & 16
-	Log(socket, "RH: parser loop iteration. cursor=%#x, delim=%#x, end=%#x", cursor, delim, buffer->current);
+	Log(socket, "receiveHeader: parser loop iteration. cursor=%#x, delim=%#x, end=%#x", cursor, delim, buffer->current);
 	#endif
 	if (delim < 0) { // end of line not found
 		if (cursor > 0) { // make some space and keep reading
@@ -91,7 +91,7 @@ _parseNextLine:
 		if (stringPoolAdd(headerPool, buffer->mem + cursor)) // add string to header pool
 		  return -1; // header pool full or whatever
 		#if DEBUG & 32
-		Log(socket, "RH: parser found header: %#x", cursor);
+		Log(socket, "receiveHeader: parser found header: %#x", cursor);
 		#endif
 		cursor = delim + 2; // beginning of next line
 		if (cursor < buffer->current)
@@ -103,16 +103,16 @@ _parseNextLine:
 	// else: empty line found == end of header
 
 	cursor = delim + 2;
-	if (cursor < buffer->current) { // there is some data left in the buffer
+	if (cursor < buffer->current) { // there is some data left in the buffer, most likely the beginning of the request body.
 		buffer->current -= cursor;
-		memmove(buffer->mem, buffer->mem + cursor, buffer->current);
+		memmove(buffer->mem, buffer->mem + cursor, buffer->current); // return the overspill via the memory pool.
 		#if DEBUG & 64
-		Log(socket, "RH: data past header: amount=%#x", buffer->current);
+		Log(socket, "receiveHeader: data past header: amount=%#x", buffer->current);
 		#endif
 	} else { // no data left in the buffer
 		memPoolReset(buffer); // initialize the buffer
 		#if DEBUG & 64
-		Log(socket, "RH: spot landing (no data past header).");
+		Log(socket, "receiveHeader: spot landing (no data past header).");
 		#endif
 	}
 
@@ -131,32 +131,32 @@ ssize_t sendBuffer(const int socket, const char *buf, const ssize_t len) {
 
 	while (remaining > 0) {
 		#if DEBUG & 2
-		Log(socket, "SWT:  loop iteration.");
+		Log(socket, "sendBuffer:  loop iteration.");
 		#endif
 		sent = send(socket, buf + numBytes, remaining, MSG_NOSIGNAL);
 		if (sent == 0) {
 			#if DEBUG & 2
-			Log(socket, "SWT:  send strangeness. sent=%d", sent);
+			Log(socket, "sendBuffer:  send strangeness. sent=%d", sent);
 			#endif
 			return -ESTRANGE; // error
 		}
 		if (sent < 0) {
 			#if DEBUG & 2
-			Log(socket, "SWT:  send error. sent=%d, errno=%d", sent, errno);
+			Log(socket, "sendBuffer:  send error. sent=%d, errno=%d", sent, errno);
 			#endif
-			if (errno == EAGAIN)
-				continue;
+			//if (errno == EAGAIN)
+			//	continue;
 			return sent; // propagate error
 		}
 		numBytes += sent;
 		remaining -= sent;
 		#if DEBUG & 2
-		Log(socket, "SWT:  send OK. sent=%d", sent);
+		Log(socket, "sendBuffer:  send OK. sent=%d", sent);
 		#endif
 	}
 
 	#if DEBUG & 2
-	Log(socket, "SWT:  return OK. numBytes=%d", numBytes);
+	Log(socket, "sendBuffer:  return OK. numBytes=%d", numBytes);
 	#endif
 	return numBytes;
 }
@@ -169,7 +169,7 @@ ssize_t sendFile(const int socket, const int fd, const ssize_t len) {
 
 	while (remaining > 0) {
 		#if DEBUG & 2
-		Log(socket, "SF: loop iteration.");
+		Log(socket, "sendFile: loop iteration.");
 		#endif
 
 		#if USE_SENDFILE == 1
@@ -179,29 +179,29 @@ ssize_t sendFile(const int socket, const int fd, const ssize_t len) {
 		#endif
 		if (sent == 0) {
 			#if DEBUG & 2
-			Log(socket, "SF: pipe strangeness. sent=%d", sent);
+			Log(socket, "SsendFileF: pipe strangeness. sent=%d", sent);
 			#endif
 			return -ESTRANGE; // error
 		}
 		if (sent < 0 ) {
 			#if DEBUG & 2
-			Log(socket, "SF: pipe error. sent=%d, errno=%d", sent, errno);
+			Log(socket, "sendFile: pipe error. sent=%d, errno=%d", sent, errno);
 			#endif
-			#if USE_SENDFILE == 1
-			if (errno == EAGAIN)
-				continue;
-			#endif
+			//#if USE_SENDFILE == 1
+			//if (errno == EAGAIN)
+			//	continue;
+			//#endif
 			return sent; // propagate error
 		}
 		numBytes += sent;
 		remaining -= sent;
 		#if DEBUG & 2
-		Log(socket, "SF: send OK. sent=%d", sent);
+		Log(socket, "sendFile: send OK. sent=%d", sent);
 		#endif
 	}
 
 	#if DEBUG & 2
-	Log(socket, "SF: return OK. numBytes=%d", numBytes);
+	Log(socket, "sendFile: return OK. numBytes=%d", numBytes);
 	#endif
 	return numBytes;
 }
@@ -215,31 +215,31 @@ ssize_t receiveFile(const int socket, const int fd, const ssize_t len) {
 
 	while (remaining > 0) {
 		#if DEBUG & 2
-		Log(socket, "RF: loop iteration.");
+		Log(socket, "receiveFile: loop iteration.");
 		#endif
 		
 		sent = pipeStream(socket, fd, remaining);
 		if (sent == 0) {
 			#if DEBUG & 2
-			Log(socket, "RF: pipe strangeness. sent=%d", sent);
+			Log(socket, "receiveFile: pipe strangeness. sent=%d", sent);
 			#endif
 			return -ESTRANGE; // error
 		}
 		if (sent < 0 ) {
 			#if DEBUG & 2
-			Log(socket, "RF: pipe error. sent=%d, errno=%d", sent, errno);
+			Log(socket, "receiveFile: pipe error. sent=%d, errno=%d", sent, errno);
 			#endif
 			return sent; // propagate error
 		}
 		numBytes += sent;
 		remaining -= sent;
 		#if DEBUG & 2
-		Log(socket, "RF: receive OK. sent=%d", sent);
+		Log(socket, "receiveFile: receive OK. sent=%d", sent);
 		#endif
 	}
 
 	#if DEBUG & 2
-	Log(socket, "RF: return OK. numBytes=%d", numBytes);
+	Log(socket, "receiveFile: return OK. numBytes=%d", numBytes);
 	#endif
 	return numBytes;
 }
@@ -254,22 +254,22 @@ ssize_t pipeStream(const int in, const int out, ssize_t count) {
 	ssize_t total = 0;
 
 	#if DEBUG & 2
-	Log(out, "PS:  entering.");
+	Log(out, "pipeStream:  entering.");
 	#endif
 	while (count == 0 || remainingToBeRead > 0) {
 		received = read(in, buf, (count == 0 || remainingToBeRead >= sizeof(buf)) ? sizeof(buf) : remainingToBeRead );
 		if (received == 0) {
 			#if DEBUG & 2
-			Log(out, "PS:  side exit. received=%d, total=%d", received, total);
+			Log(out, "pipeStream:  side exit. received=%d, total=%d", received, total);
 			#endif
 			return total;
 		}
 		if (received < 0) {
 			#if DEBUG & 2
-			Log(out, "PS:  read error. received=%d, errno=%d", received, errno);
+			Log(out, "pipeStream:  read error. received=%d, errno=%d", received, errno);
 			#endif
-			if (errno == EAGAIN)
-				continue;
+			//if (errno == EAGAIN)
+			//	continue;
 			return received; // propagate error
 		}
 		remainingToBeSent = received;
@@ -277,10 +277,10 @@ ssize_t pipeStream(const int in, const int out, ssize_t count) {
 			sent = sendBuffer(out, buf, remainingToBeSent);
 			if (sent < 0) {
 				#if DEBUG & 2
-				Log(out, "PS:  send error. sent=%d", sent);
+				Log(out, "pipeStream:  send error. sent=%d", sent);
 				#endif
-				if (errno == EAGAIN)
-					continue;
+				//if (errno == EAGAIN)
+				//	continue;
 				return sent; // propagate error
 			}
 			remainingToBeSent -= sent;
@@ -290,66 +290,8 @@ ssize_t pipeStream(const int in, const int out, ssize_t count) {
 			remainingToBeRead -= received;
 	}
 	#if DEBUG & 2
-	Log(out, "PS:  main exit. total=%d", total);
+	Log(out, "pipeStream:  main exit. total=%d", total);
 	#endif
 	return total;
 }
 #endif
-
-/*#ifdef AUTO_INDEX
-enum ErrorState senDirectory(const int socket, MemPool *fileNamePool, MemPool *result) {
-	struct dirent *dp;
-	int found = 0;
-
-	if (fileNamePool->current < 2)
-		return ERROR_TRUE;
-	if (fileNamePool->mem[fileNamePool->current - 2] != '/' && memPoolExtendChar(fileNamePool, '/'))
-		return ERROR_TRUE;
-	int savePosition = fileNamePool->current;
-	DIR *dir = opendir(fileNamePool->mem);
-	if (dir == NULL)
-		return ERROR_TRUE;
-
-	memPoolReset(result);
-	if (memPoolExtendChar(result, '['))
-		return ERROR_TRUE;
-	while ((dp = readdir(dir)) != NULL) {
-		if (strncmp(dp->d_name, ".", 1)) {
-			memPoolExtend(fileNamePool, dp->d_name);
-			struct stat st;
-			if (stat(fileNamePool->mem, &st) < 0)
-				return ERROR_TRUE;
-			memPoolResetTo(fileNamePool, savePosition);
-			unsigned fileSize = st.st_size;
-			const char *fileType = S_ISDIR(st.st_mode) ? "dir" : (S_ISREG(st.st_mode) ? mimeType(dp->d_name) : "unknown");
-			if (found++ > 0 && memPoolExtendChar(result, ','))
-				return ERROR_TRUE;
-			if (
-				memPoolExtendChar(result, '{') ||
-				memPoolExtend(result, "\"name\":\"") ||
-				memPoolExtend(result, dp->d_name) ||
-				memPoolExtend(result, "\",") ||
-				memPoolExtend(result, "\"type\":\"") ||
-				memPoolExtend(result, fileType) ||
-				memPoolExtend(result, "\",") ||
-				memPoolExtend(result, "\"size\":") ||
-				memPoolExtendNumber(result, fileSize) ||
-				memPoolExtendChar(result, '}')
-			)
-				return ERROR_TRUE;
-			if (result->size - result->current < 256) {
-				result->current--; // remove trailing '\0' character
-				if (sendMemPool(socket, result))
-					return ERROR_TRUE;
-				memPoolReset(result);
-			}
-		}
-	}
-	if (memPoolExtendChar(result, ']'))
-		return ERROR_TRUE;
-	result->current--; // remove trailing '\0' character
-	if (sendMemPool(socket, result))
-		return ERROR_TRUE;
-	return ERROR_FALSE;
-}
-#endif*/

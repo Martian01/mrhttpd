@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mrhttpd.h"
 
+char digit[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+
 // Log support
 
 #if (LOG_LEVEL > 0) || (DEBUG > 0)
@@ -68,7 +70,7 @@ void Log(const int socket, const char *format, ...) {
 	localtime_r(&tv.tv_sec, &tm);
 	fprintf(logFile, "%04d-%02d-%02d %02d:%02d:%02d.%06d  <%08d>  ", 
 		tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 
-		tm.tm_hour, tm.tm_min, tm.tm_sec, tv.tv_usec, socket);
+		tm.tm_hour, tm.tm_min, tm.tm_sec, (int) tv.tv_usec, socket);
 	
 	va_start(ap, format);
 	vfprintf(logFile, format, ap);
@@ -247,7 +249,7 @@ enum ErrorState fileNameEncode(const char *in, char *out, size_t outLength) {
 			*out++ = '%';
 			*out++ = '2';
 			*out   = 'F';
-			outLength-=2;
+			outLength -= 2;
 		}
 	}
 	return ERROR_FALSE; // success
@@ -255,8 +257,39 @@ enum ErrorState fileNameEncode(const char *in, char *out, size_t outLength) {
 
 // Miscellaneous
 
-#ifdef AUTO_INDEX
+#ifdef PUT_PATH
+int openFileForWriting(MemPool *fileNamePool, char *resource) {
+	char *token;
+	struct stat st;
+	int file;
 
+	while(1) {
+		token = strsep(&resource, "/");
+		#if DEBUG & 1024
+		Log(0, "OFFW: token=\"%s\" resource=\"%s\"", token, resource);
+		#endif
+		if (token == NULL)
+			return ERROR_TRUE; // bad format
+		if (*token == '\0')
+			continue; // eat leading slash
+		if (memPoolExtendChar(fileNamePool, '/') || memPoolExtend(fileNamePool, token))
+			return ERROR_TRUE; // out of memory
+		if (resource == NULL || *resource == '\0') {
+			#if DEBUG & 1024
+			Log(0, "OFFW: file=\"%s\"", fileNamePool->mem);
+			#endif
+			return open(fileNamePool->mem, O_CREAT | O_WRONLY, 0755); // open file for writing
+		}
+		if (stat(fileNamePool->mem, &st)) {
+			if (mkdir(fileNamePool->mem, 0755)) // path component does not exist, create directory
+				return ERROR_TRUE; // mkdir failed
+		} else if (!S_ISDIR(st.st_mode))
+			return ERROR_TRUE; // path component exists but is not a directory
+	}
+}
+#endif
+
+#ifdef AUTO_INDEX
 enum ErrorState fileWriteChar(FILE *file, const char c) {
 	return fputc(c, file) != c;
 }

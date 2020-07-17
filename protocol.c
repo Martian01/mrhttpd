@@ -95,9 +95,9 @@ enum ConnectionState httpRequest(const int socket) {
 	char *query; 
 	char *connection;
 	
-	struct stat st;
-	
 	int statusCode;
+
+	struct stat st;
 	FILE *file = NULL;
 	int fd = -1;
 
@@ -108,8 +108,8 @@ enum ConnectionState httpRequest(const int socket) {
 	MemPool fileNamePool = { sizeof(fileNameBuf), 0, fileNameBuf };
 	char *fileName = fileNameBuf;
 
-	char generalPurposeBuf[2048];
-	MemPool generalPurposeMemPool = { sizeof(generalPurposeBuf), 0, generalPurposeBuf };
+	char streamBuf[2048];
+	MemPool streamMemPool = { sizeof(streamBuf), 0, streamBuf };
 
 	char requestHeaderBuf[2048];
 	MemPool requestHeaderMemPool = { sizeof(requestHeaderBuf), 0, requestHeaderBuf };
@@ -131,7 +131,7 @@ enum ConnectionState httpRequest(const int socket) {
 	#endif
 
 	// Read request header
-	if (receiveHeader(socket, &requestHeaderPool, &generalPurposeMemPool) < 0)
+	if (receiveHeader(socket, &requestHeaderPool, &streamMemPool) < 0)
 		return CONNECTION_CLOSE; // socket is in undefined state
 
 	// Parse first header line
@@ -183,11 +183,14 @@ enum ConnectionState httpRequest(const int socket) {
 		goto _sendError;
 	}
 
+	char *requestBodyLength = stringPoolReadVariable(&requestHeaderPool, "Content-Length");
+	contentLength = requestBodyLength == NULL ? 0 : atoi(requestBodyLength);
+
 	query = resource;
 	resource = strsep(&query, "?");
-	if ( urlDecode(resource) ) // space-saving hack: decode in-place
+	if (urlDecode(resource)) // space-saving hack: decode in-place
 		goto _sendError500;
-	if ( urlDecode(query) ) // space-saving hack: decode in-place
+	if (urlDecode(query)) // space-saving hack: decode in-place
 		goto _sendError500;
 		
 	#ifdef QUERY_HACK
@@ -195,9 +198,9 @@ enum ConnectionState httpRequest(const int socket) {
 	char newResource[512];
 	MemPool newResourceMemPool = { sizeof(newResource), 0, newResource };
 	
-	if ( query != NULL )
-		if ( *query != '\0' )
-			if ( strncmp(resource, QUERY_HACK, strlen(QUERY_HACK)) == 0 ) {
+	if (query != NULL)
+		if (*query != '\0')
+			if (strncmp(resource, QUERY_HACK, strlen(QUERY_HACK)) == 0) {
 				if ( 
 						fileNameEncode(query, newQuery, sizeof(newQuery)) ||
 						memPoolAdd(&newResourceMemPool, resource) || 
@@ -219,10 +222,10 @@ enum ConnectionState httpRequest(const int socket) {
 
 	#ifdef CGI_PATH
 	char *env[96];
-	StringPool envPool = { sizeof(env), 0, env, &generalPurposeMemPool };
+	StringPool envPool = { sizeof(env), 0, env, &streamMemPool };
 
 	if (!strncmp(resource, CGI_PATH, strlen(CGI_PATH))) { // presence of CGI path prefix indicates CGI script
-		if ( memPoolAdd(&fileNamePool, CGI_DIR) || memPoolExtend(&fileNamePool, resource + strlen(CGI_PATH)) )
+		if (memPoolAdd(&fileNamePool, CGI_DIR) || memPoolExtend(&fileNamePool, resource + strlen(CGI_PATH)))
 			goto _sendError500;
 		if (stat(fileName, &st)) {
 			#if LOG_LEVEL > 2
@@ -290,7 +293,7 @@ enum ConnectionState httpRequest(const int socket) {
 				#if DEBUG & 512
 				Log(socket, "CGI Fork Child: Reply header sent for %s", fileName);
 				#endif
-				if (dup2(socket, 1) == 1) {
+				if (dup2(socket, 1) == 1) { // Known Bug: the overspill from receiveHeader() is missing from the stream
 					#if DEBUG & 512
 					Log(socket, "CGI Fork Child: Executing %s", fileName);
 					#endif
@@ -323,20 +326,58 @@ enum ConnectionState httpRequest(const int socket) {
 	}
 	#endif
 
-	if ( memPoolAdd(&fileNamePool, DOC_DIR) || memPoolExtend(&fileNamePool, resource) ) 
+	if (memPoolAdd(&fileNamePool, DOC_DIR)) 
 		goto _sendError500;
 
 	#ifdef PUT_PATH
 	if (isUpload) {
 		if (strncmp(resource, PUT_PATH, strlen(PUT_PATH))) { // PUT path prefix must be present
-			statusCode = HTTP_400;
+			#if LOG_LEVEL > 2
+			Log(socket, "%15s  403  \"PUT wrong path\"", client);
+			#endif
+			statusCode = HTTP_403;
 			goto _sendError;
 		}
-		// TODO: upload file
+		int uploadFile = openFileForWriting(&fileNamePool, resource);
+		if (uploadFile < 0) {
+			#if LOG_LEVEL > 2
+			Log(socket, "%15s  500  \"PUT file error %d\"", client, uploadFile);
+			#endif
+			goto _sendError500;
+		}
+		if (contentLength > 0 && streamMemPool.current > 0) { // overspill from receiveHeader()
+			unsigned size = contentLength;
+			if (streamMemPool.current < size)
+				size = streamMemPool.current;
+			if (write(uploadFile, streamMemPool.mem, size) != size) {
+				#if LOG_LEVEL > 2
+				Log(socket, "%15s  500  \"PUT overspill error\"", client);
+				#endif
+				close(uploadFile);
+				goto _sendError500;
+			}
+			contentLength -= size;
+		}
+		if (contentLength > 0 && pipeStream(socket, uploadFile, contentLength) < 0) {
+			#if LOG_LEVEL > 2
+			Log(socket, "%15s  500  \"PUT pipe error\"", client);
+			#endif
+			close(uploadFile);
+			goto _sendError500;
+		}
+		if (close(uploadFile) < 0) {
+			#if LOG_LEVEL > 2
+			Log(socket, "%15s  500  \"PUT close error\"", client);
+			#endif
+			goto _sendError500;
+		}
 		statusCode = HTTP_200;
 		goto _sendEmptyResponse;
 	}
 	#endif
+
+	if (memPoolExtend(&fileNamePool, resource)) 
+		goto _sendError500;
 
 	statusCode = HTTP_404;
 
@@ -351,10 +392,17 @@ enum ConnectionState httpRequest(const int socket) {
 	if (S_ISDIR(st.st_mode)) {
 		#ifdef AUTO_INDEX
 		file = tmpfile();
-		if (file == NULL)
+		if (file == NULL) {
+			#if LOG_LEVEL > 2
+			Log(socket, "%15s  500  \"AUTODIR no tmpfile\"", client);
+			#endif
 			goto _sendError500;
+		}
 		if (fileWriteDirectory(file, &fileNamePool)) {
 			fclose(file);
+			#if LOG_LEVEL > 2
+			Log(socket, "%15s  500  \"AUTODIR failed write\"", client);
+			#endif
 			goto _sendError500;
 		}
 		fflush(file);
@@ -362,6 +410,9 @@ enum ConnectionState httpRequest(const int socket) {
 		fd = fileno(file);
 		if (fd < 0 || fstat(fd, &st)) {
 			fclose(file);
+			#if LOG_LEVEL > 2
+			Log(socket, "%15s  500  \"AUTODIR failed rewind\"", client);
+			#endif
 			goto _sendError500;
 		}
 		contentType = "application/json";
@@ -467,10 +518,11 @@ _sendError500:
 
 _sendError:
 
+	connectionState = CONNECTION_CLOSE;
+
 	#ifdef SERVER_DOCS
 	fileName = (char *)(httpFile[statusCode]);
 	contentType = "text/html";
-
 	if (stat(fileName, &st) < 0) {
 		#if LOG_LEVEL > 0
 		Log(socket, "Server Doc Stat Error \"STAT %s\"", fileName);

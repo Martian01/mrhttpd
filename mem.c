@@ -37,7 +37,6 @@ void memPoolReset(MemPool *mp) {
 	mp->current = 0;
 }
 
-
 void memPoolResetTo(MemPool *mp, int savePosition) {
 	mp->current = savePosition;
 	if (savePosition > 0)

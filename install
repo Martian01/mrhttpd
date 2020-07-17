@@ -23,10 +23,12 @@ if [ -n "$ERROR" ] ; then
 fi
 
 cp -f mrhttpd $BIN_DIR/
+
 if [ -n "$SERVER_DOCS" ] ; then
   mkdir -p $SERVER_ROOT$SERVER_DOCS
   cp -u html/[2345]*.html $SERVER_ROOT$SERVER_DOCS/
 fi
+
 if [ -n "$DOC_DIR" ] ; then
   mkdir -p $SERVER_ROOT$DOC_DIR
   cp -u html/index.html $SERVER_ROOT$DOC_DIR/
@@ -37,17 +39,16 @@ if [ -n "$DOC_DIR" ] ; then
     chown $SYSTEM_USER: $SERVER_ROOT$DOC_DIR/mouse.png
   fi
 fi
+
 if [ -n "$CGI_DIR" ] ; then
   mkdir -p $SERVER_ROOT$CGI_DIR
 fi
+
+mkdir -p $SERVER_ROOT/tmp
+
 if [ -n "$LOG_FILE" ] ; then
   touch $SERVER_ROOT$LOG_FILE
   if [ -n "$SYSTEM_USER" ] ; then
     chown $SYSTEM_USER: $SERVER_ROOT$LOG_FILE
-  fi
-fi
-if [ -n "$DEFAULT_INDEX" ]; then
-  if [ "$DEFAULT_INDEX" = "auto" ]; then
-    mkdir -p $SERVER_ROOT/tmp
   fi
 fi
