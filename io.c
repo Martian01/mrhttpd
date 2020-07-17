@@ -161,22 +161,19 @@ ssize_t sendBuffer(const int socket, const char *buf, const ssize_t len) {
 	return numBytes;
 }
 
-ssize_t sendFile(const int socket, const int fd, const ssize_t len) {
+#if USE_SENDFILE == 1
+ssize_t sendFile(const int fd, const int socket, const ssize_t count) {
 	ssize_t numBytes, remaining, sent;
 
 	numBytes = 0;
-	remaining = len;
+	remaining = count;
 
 	while (remaining > 0) {
 		#if DEBUG & 2
 		Log(socket, "sendFile: loop iteration.");
 		#endif
 
-		#if USE_SENDFILE == 1
 		sent = sendfile(socket, fd, NULL, remaining);
-		#else
-		sent = pipeStream(fd, socket, remaining);
-		#endif
 		if (sent == 0) {
 			#if DEBUG & 2
 			Log(socket, "SsendFileF: pipe strangeness. sent=%d", sent);
@@ -187,10 +184,8 @@ ssize_t sendFile(const int socket, const int fd, const ssize_t len) {
 			#if DEBUG & 2
 			Log(socket, "sendFile: pipe error. sent=%d, errno=%d", sent, errno);
 			#endif
-			//#if USE_SENDFILE == 1
 			//if (errno == EAGAIN)
 			//	continue;
-			//#endif
 			return sent; // propagate error
 		}
 		numBytes += sent;
@@ -205,47 +200,9 @@ ssize_t sendFile(const int socket, const int fd, const ssize_t len) {
 	#endif
 	return numBytes;
 }
-
-#ifdef PUT_PATH
-ssize_t receiveFile(const int socket, const int fd, const ssize_t len) {
-	ssize_t numBytes, remaining, sent;
-
-	numBytes = 0;
-	remaining = len;
-
-	while (remaining > 0) {
-		#if DEBUG & 2
-		Log(socket, "receiveFile: loop iteration.");
-		#endif
-		
-		sent = pipeStream(socket, fd, remaining);
-		if (sent == 0) {
-			#if DEBUG & 2
-			Log(socket, "receiveFile: pipe strangeness. sent=%d", sent);
-			#endif
-			return -ESTRANGE; // error
-		}
-		if (sent < 0 ) {
-			#if DEBUG & 2
-			Log(socket, "receiveFile: pipe error. sent=%d, errno=%d", sent, errno);
-			#endif
-			return sent; // propagate error
-		}
-		numBytes += sent;
-		remaining -= sent;
-		#if DEBUG & 2
-		Log(socket, "receiveFile: receive OK. sent=%d", sent);
-		#endif
-	}
-
-	#if DEBUG & 2
-	Log(socket, "receiveFile: return OK. numBytes=%d", numBytes);
-	#endif
-	return numBytes;
-}
 #endif
 
-#if USE_SENDFILE == 0 || defined(PUT_PATH)
+#if USE_SENDFILE != 1 || defined(PUT_PATH)
 ssize_t pipeStream(const int in, const int out, ssize_t count) {
 	char buf[16384];
 	ssize_t received, sent;

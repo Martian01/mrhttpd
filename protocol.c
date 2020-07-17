@@ -497,7 +497,7 @@ _sendFile:
 	setsockopt(socket, SOL_TCP, TCP_CORK, &option, sizeof(option));
 	#endif
 	
-	if (sendMemPool(socket, &replyHeaderMemPool) < 0 || sendFile(socket, fd, contentLength) < 0)
+	if (sendMemPool(socket, &replyHeaderMemPool) < 0 || sendFile(fd, socket, contentLength) < 0)
 		connectionState = CONNECTION_CLOSE;
 	
 	#ifdef TCP_CORK // Linux specific
