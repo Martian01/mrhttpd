@@ -122,3 +122,4 @@ released 2020-07-15
 Functional release 
 PUT and POST support
 Automatic directory listings in JSON format
+Logging support for stdout

@@ -24,18 +24,11 @@ if [ -z "$SERVER_PORT" ]; then
 else
   _SERVER_PORT=$SERVER_PORT
 fi
-if [ -z "$SERVER_NAME" ]; then
-  _SERVER_NAME="missing, default: $(hostname)"
-  SERVER_NAME=$(hostname)
+if [ -z "$PRIVATE_DIR" ]; then
+  _PRIVATE_DIR="missing, HTML error replies disabled"
   WARNING=yes
 else
-  _SERVER_NAME=$SERVER_NAME
-fi
-if [ -z "$SERVER_DOCS" ]; then
-  _SERVER_DOCS="missing, HTML error replies disabled"
-  WARNING=yes
-else
-  _SERVER_DOCS=$SERVER_DOCS
+  _PRIVATE_DIR=$PRIVATE_DIR
 fi
 if [ -z "$BIN_DIR" ]; then
   if [ -d /usr/local/sbin ]; then
@@ -49,11 +42,11 @@ if [ -z "$BIN_DIR" ]; then
 else
   _BIN_DIR=$BIN_DIR
 fi
-if [ -z "$DOC_DIR" ]; then
-  _DOC_DIR="missing, fatal"
+if [ -z "$PUBLIC_DIR" ]; then
+  _PUBLIC_DIR="missing, fatal"
   ERROR=yes
 else
-  _DOC_DIR=$DOC_DIR
+  _PUBLIC_DIR=$PUBLIC_DIR
 fi
 if [ -z "$CGI_DIR" ]; then
   if [ -z "$CGI_PATH" ]; then
@@ -97,11 +90,10 @@ else
 fi
 if [ -z "$LOG_FILE" ]; then
   if [ "$LOG_LEVEL" != "0" ]; then
-    _LOG_FILE="missing"
-    ERROR=yes
+    _LOG_FILE="missing, default: stdout"
+    WARNING=yes
   else
     _LOG_FILE="missing, OK"
-    WARNING=yes
   fi
 else
   _LOG_FILE=$LOG_FILE

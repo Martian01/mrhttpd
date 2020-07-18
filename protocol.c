@@ -39,24 +39,24 @@ enum HttpCodeIndex {
 	HTTP_503
 };
 
-#ifdef SERVER_DOCS
+#ifdef PRIVATE_DIR
 const char *httpFile[] = {
-	SERVER_DOCS "/200.html",
-	SERVER_DOCS "/201.html",
-	SERVER_DOCS "/202.html",
-	SERVER_DOCS "/204.html",
-	SERVER_DOCS "/300.html",
-	SERVER_DOCS "/301.html",
-	SERVER_DOCS "/302.html",
-	SERVER_DOCS "/304.html",
-	SERVER_DOCS "/400.html",
-	SERVER_DOCS "/401.html",
-	SERVER_DOCS "/403.html",
-	SERVER_DOCS "/404.html",
-	SERVER_DOCS "/500.html",
-	SERVER_DOCS "/501.html",
-	SERVER_DOCS "/502.html",
-	SERVER_DOCS "/503.html"
+	PRIVATE_DIR "/200.html",
+	PRIVATE_DIR "/201.html",
+	PRIVATE_DIR "/202.html",
+	PRIVATE_DIR "/204.html",
+	PRIVATE_DIR "/300.html",
+	PRIVATE_DIR "/301.html",
+	PRIVATE_DIR "/302.html",
+	PRIVATE_DIR "/304.html",
+	PRIVATE_DIR "/400.html",
+	PRIVATE_DIR "/401.html",
+	PRIVATE_DIR "/403.html",
+	PRIVATE_DIR "/404.html",
+	PRIVATE_DIR "/500.html",
+	PRIVATE_DIR "/501.html",
+	PRIVATE_DIR "/502.html",
+	PRIVATE_DIR "/503.html"
 };
 #endif
 
@@ -326,7 +326,7 @@ enum ConnectionState httpRequest(const int socket) {
 	}
 	#endif
 
-	if (memPoolAdd(&fileNamePool, DOC_DIR)) 
+	if (memPoolAdd(&fileNamePool, PUBLIC_DIR)) 
 		goto _sendError500;
 
 	#ifdef PUT_PATH
@@ -526,7 +526,7 @@ _sendError:
 
 	connectionState = CONNECTION_CLOSE;
 
-	#ifdef SERVER_DOCS
+	#ifdef PRIVATE_DIR
 	fileName = (char *)(httpFile[statusCode]);
 	contentType = "text/html";
 	if (stat(fileName, &st) < 0) {
@@ -545,7 +545,7 @@ _sendError:
 	goto _sendFile; // send the standard error file
 	#endif
 
-	// fall through if SERVER_DOCS is not defined
+	// fall through if PRIVATE_DIR is not defined
 	
 _sendEmptyResponse:
 

@@ -24,19 +24,19 @@ fi
 
 cp -f mrhttpd $BIN_DIR/
 
-if [ -n "$SERVER_DOCS" ] ; then
-  mkdir -p $SERVER_ROOT$SERVER_DOCS
-  cp -u html/[2345]*.html $SERVER_ROOT$SERVER_DOCS/
+if [ -n "$PRIVATE_DIR" ] ; then
+  mkdir -p $SERVER_ROOT$PRIVATE_DIR
+  cp -u html/[2345]*.html $SERVER_ROOT$PRIVATE_DIR/
 fi
 
-if [ -n "$DOC_DIR" ] ; then
-  mkdir -p $SERVER_ROOT$DOC_DIR
-  cp -u html/index.html $SERVER_ROOT$DOC_DIR/
-  cp -u html/mouse.png $SERVER_ROOT$DOC_DIR/
+if [ -n "$PUBLIC_DIR" ] ; then
+  mkdir -p $SERVER_ROOT$PUBLIC_DIR
+  cp -u html/index.html $SERVER_ROOT$PUBLIC_DIR/
+  cp -u html/mouse.png $SERVER_ROOT$PUBLIC_DIR/
   if [ -n "$SYSTEM_USER" ] ; then
-    chown $SYSTEM_USER: $SERVER_ROOT$DOC_DIR
-    chown $SYSTEM_USER: $SERVER_ROOT$DOC_DIR/index.html
-    chown $SYSTEM_USER: $SERVER_ROOT$DOC_DIR/mouse.png
+    chown $SYSTEM_USER: $SERVER_ROOT$PUBLIC_DIR
+    chown $SYSTEM_USER: $SERVER_ROOT$PUBLIC_DIR/index.html
+    chown $SYSTEM_USER: $SERVER_ROOT$PUBLIC_DIR/mouse.png
   fi
 fi
 

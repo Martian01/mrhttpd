@@ -31,7 +31,11 @@ FILE *logFile;
 pthread_mutex_t logFileMutex = PTHREAD_MUTEX_INITIALIZER;
 
 int LogOpen(const int socket) {
+	#ifdef LOG_FILE
 	logFile = fopen(LOG_FILE, "at");
+	#else
+	logFile = stdout;
+	#endif
 	if (logFile != NULL)
 		Log(socket,
 			"Server started. Port: " SERVER_PORT_STR "."

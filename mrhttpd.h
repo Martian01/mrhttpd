@@ -61,6 +61,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define sendFile(socket, fd, count) pipeToSocket(socket, fd, count)
 #endif
 
+#define SERVER_NAME       "mrhttpd"
 #define SERVER_SOFTWARE   "mrhttpd/2.5.0"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"

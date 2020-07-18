@@ -69,17 +69,14 @@ specifies the directory that will become the chroot jail of the server. All othe
 #### SERVER_PORT
 defines the TCP port the server is listening on. The default is port 8080, but you can use any other port you like. It is quite possible to run multiple server instances at the same time, each one configured for a different port.
 
-#### SERVER_NAME
-defines the host name sent to CGI programs as a parameter. This is different from the "Server" attribute in the HTTP header which is hardcoded to "mrhttpd/2.5.0".
-
-#### SERVER_DOCS
-defines the root directory for internal files. Internal files are documents like the 404 error page.
-
 #### BIN_DIR
 defines the installation directory for the binary. This is the only directory not affected by SERVER_ROOT since it is not runtime relevant.
 
-#### DOC_DIR
-defines the root directory for all static files (HTML, CSS, JPG, etc.), ie. the actual productive content of the web server.
+#### PRIVATE_DIR
+defines the root directory for internal files. Internal files are documents like the 404 error page.
+
+#### PUBLIC_DIR
+defines the root directory for public files (HTML, CSS, JPG, etc.), ie. the actual productive content of the web server.
 
 #### CGI_DIR
 defines the root directory for CGI scripts.
@@ -116,7 +113,7 @@ The meaning of the values is as follows:
  * __LOG_LEVEL=4__ additionally, every successful reply is logged
 
 #### LOG_FILE
-defines the file name used for saving the logs.
+defines the file name used for saving the logs. If omitted, all logs are printed to stdout.
 
 #### EXT_FILE_CMD
 specifies a binary that is used to determine the mime type of a resource. A typical binary would be the file(1) command. Note that the external file command is called only after evaluating the file suffix according to a list compiled into mrhttpd. The obvious reason is the performance impact of an external call.
