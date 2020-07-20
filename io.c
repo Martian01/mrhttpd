@@ -55,14 +55,12 @@ _moreHeader:
 		#if DEBUG & 8
 		Log(socket, "parseHeader: recv strangeness. received=0");
 		#endif
-		return -ESTRANGE; // error
+		return -1; // header incomplete
 	}
 	if (received < 0) {
 		#if DEBUG & 8
 		Log(socket, "parseHeader: recv error. received=%d, errno=%d", received, errno);
 		#endif
-		//if (errno == EAGAIN)
-		//	goto _moreHeader;
 		return received; // propagate error
 	}
 	#if DEBUG & 8
@@ -136,14 +134,12 @@ ssize_t sendBuffer(const int socket, const char *buf, const ssize_t count) {
 			#if DEBUG & 2
 			Log(socket, "sendBuffer: send strangeness. sent=%d", sent);
 			#endif
-			return -ESTRANGE; // error
+			return -1; // cannot send
 		}
 		if (sent < 0) {
 			#if DEBUG & 2
 			Log(socket, "sendBuffer: send error. sent=%d, errno=%d", sent, errno);
 			#endif
-			//if (errno == EAGAIN)
-			//	continue;
 			return sent; // propagate error
 		}
 		totalSent += sent;
@@ -173,14 +169,12 @@ ssize_t sendFile(const int socket, const int fd, const ssize_t count) {
 			#if DEBUG & 2
 			Log(socket, "sendFile: pipe strangeness. sent=%d", sent);
 			#endif
-			return -ESTRANGE; // error
+			return -1; // cannot send
 		}
 		if (sent < 0 ) {
 			#if DEBUG & 2
 			Log(socket, "sendFile: pipe error. sent=%d, errno=%d", sent, errno);
 			#endif
-			//if (errno == EAGAIN)
-			//	continue;
 			return sent; // propagate error
 		}
 		#if DEBUG & 2
@@ -261,8 +255,6 @@ ssize_t pipeToFile(const int socket, const int fd, const ssize_t count) {
 			#if DEBUG & 2
 			Log(socket, "pipeToFile: recv error. received=%d, errno=%d", received, errno);
 			#endif
-			//if (errno == EAGAIN)
-			//	continue;
 			return received; // propagate error
 		}
 		sent = write(fd, buf, received);
