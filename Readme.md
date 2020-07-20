@@ -63,11 +63,11 @@ Let us now go through the list of variables. Note that some of these variables h
 #### SYSTEM_USER
 defines the user account under which mrhttpd will run. Note: If mrhttpd is configured to listen at a non-privileged port it need not be started as root. However, if it is started as root you should specify a user with restricted access rights here.
 
-#### SERVER_ROOT
-specifies the directory that will become the chroot jail of the server. All other paths with the exception of BIN_DIR are therefore relative to SERVER_ROOT. Be aware that a chroot jail can be very restrictive. In particular all your document files and all binaries and libraries required for running external programs must be replicated in the chroot jail.
-
 #### SERVER_PORT
 defines the TCP port the server is listening on. The default is port 8080, but you can use any other port you like. It is quite possible to run multiple server instances at the same time, each one configured for a different port.
+
+#### SERVER_ROOT
+specifies the directory that will become the chroot jail of the server. All other paths with the exception of BIN_DIR are therefore relative to SERVER_ROOT. Be aware that a chroot jail can be very restrictive. In particular all your document files and all binaries and libraries required for running external programs must be replicated in the chroot jail.
 
 #### BIN_DIR
 defines the installation directory for the binary. This is the only directory not affected by SERVER_ROOT since it is not runtime relevant.
@@ -90,7 +90,8 @@ defines the URL prefix and the base directory for uploads. A PUT or POST request
 #### DEFAULT_INDEX
 defines the name of the default file in a directory. Typically you use "index.html" or similar. mrhttpd will serve this file if no file name is specified in the URL. For example, if a client requests http://server/path/ mrhttpd will try to send http://server/path/index.html.
 
-As an experimental feature you can specify "auto" to generate directory listings in JSON format.
+#### AUTO_INDEX
+controls whether the server will generate directory listings in JSON format. A default index will take precedence over auto index generation. This allows you to exclude directories from auto index generation, for instance for security purposes.
 
 #### PRAGMA
 specifies an optional Pragma parameter that is sent with every HTTP reply. A typical value is "no-cache" if you want to suppress caching by proxy servers and frontends.

@@ -76,6 +76,13 @@ if [ -z "$DEFAULT_INDEX" ]; then
 else
   _DEFAULT_INDEX=$DEFAULT_INDEX
 fi
+if [ -z "$AUTO_INDEX" ]; then
+  _AUTO_INDEX="missing, default: 0"
+  AUTO_INDEX=0;
+  WARNING=yes
+else
+  _AUTO_INDEX=$AUTO_INDEX
+fi
 if [ -z "$PRAGMA" ]; then
   _PRAGMA="missing, OK"
 else

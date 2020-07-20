@@ -14,16 +14,16 @@ echo "mrhttpd configuration"
 echo "====================="
 echo
 echo "System user:           $_SYSTEM_USER"
-echo "Server root:           $_SERVER_ROOT"
 echo "Server port:           $_SERVER_PORT"
-echo "Server documents:      $_PRIVATE_DIR"
+echo "Server root:           $_SERVER_ROOT"
 echo "Binary directory:      $_BIN_DIR"
-echo "Documents directory:   $_PUBLIC_DIR"
+echo "Private directory:     $_PRIVATE_DIR"
+echo "Public directory:      $_PUBLIC_DIR"
 echo "CGI script directory:  $_CGI_DIR"
 echo "Path for CGI scripts:  $_CGI_PATH"
 echo "Path for PUT requests: $_PUT_PATH"
 echo "Default index name:    $_DEFAULT_INDEX"
-echo "System user:           $_SYSTEM_USER"
+echo "Auto index option:     $_AUTO_INDEX"
 echo "Pragma:                $_PRAGMA"
 echo "Log level:             $_LOG_LEVEL"
 echo "Log file:              $_LOG_FILE"
@@ -66,16 +66,22 @@ EOF
 if [ -n "$SYSTEM_USER" ]; then
   echo '#define SYSTEM_USER     "'$SYSTEM_USER'"' >>config.h
 fi
+if [ -n "$SERVER_PORT" ]; then
+  echo '#define SERVER_PORT     '$SERVER_PORT >>config.h
+  echo '#define SERVER_PORT_STR "'$SERVER_PORT'"' >>config.h
+fi
 if [ -n "$SERVER_ROOT" ]; then
   echo '#define SERVER_ROOT     "'$SERVER_ROOT'"' >>config.h
 fi
-echo '#define SERVER_PORT     '$SERVER_PORT >>config.h
-echo '#define SERVER_PORT_STR "'$SERVER_PORT'"' >>config.h
+if [ -n "$BIN_DIR" ]; then
+  echo '#define BIN_DIR         "'$BIN_DIR'"' >>config.h
+fi
 if [ -n "$PRIVATE_DIR" ]; then
   echo '#define PRIVATE_DIR     "'$PRIVATE_DIR'"' >>config.h
 fi
-echo '#define BIN_DIR         "'$BIN_DIR'"' >>config.h
-echo '#define PUBLIC_DIR         "'$PUBLIC_DIR'"' >>config.h
+if [ -n "$PUBLIC_DIR" ]; then
+  echo '#define PUBLIC_DIR         "'$PUBLIC_DIR'"' >>config.h
+fi
 if [ -n "$CGI_PATH" ]; then
   echo '#define CGI_PATH         "'$CGI_PATH'"' >>config.h
   echo '#define CGI_DIR         "'$CGI_DIR'"' >>config.h
@@ -85,9 +91,9 @@ if [ -n "$PUT_PATH" ]; then
 fi
 if [ -n "$DEFAULT_INDEX" ]; then
   echo '#define DEFAULT_INDEX   "'$DEFAULT_INDEX'"' >>config.h
-  if [ "$DEFAULT_INDEX" = "auto" ]; then
-    echo '#define AUTO_INDEX      1' >>config.h
-  fi
+fi
+if [ -n "$AUTO_INDEX" ]; then
+  echo '#define AUTO_INDEX      '$AUTO_INDEX >>config.h
 fi
 if [ -n "$PRAGMA" ]; then
   echo '#define PRAGMA          "'$PRAGMA'"' >>config.h

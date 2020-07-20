@@ -394,9 +394,20 @@ enum ConnectionState httpRequest(const int socket) {
 		goto _sendError;
 	}
 
-	#ifdef DEFAULT_INDEX
 	if (S_ISDIR(st.st_mode)) {
-		#ifdef AUTO_INDEX
+		// normalize directory name
+		if (fileName[strlen(fileName) - 1] != '/') {
+			if (memPoolExtendChar(&fileNamePool, '/')) 
+				goto _sendError500;
+		}
+		#ifdef DEFAULT_INDEX
+		if (memPoolExtend(&fileNamePool, DEFAULT_INDEX) != 0)
+			goto _sendError500;
+		if (stat(fileName, &st) >= 0)
+			goto _foundFile;
+		#endif
+		#if AUTO_INDEX == 1
+		// generate auto index if default index was unsuccessful (allows to exclude directories from auto index)
 		file = tmpfile();
 		if (file == NULL) {
 			#if LOG_LEVEL > 2
@@ -424,26 +435,15 @@ enum ConnectionState httpRequest(const int socket) {
 		contentType = "application/json";
 		goto _sendFile200;
 		#else
-		if (fileName[strlen(fileName) - 1] != '/') {
-			// We cannot simply append "/" DEFAULT_INDEX
-			// because browsers will misinterpret relative links.
-			// Redirecting is difficult due to hex encoding
-			// and query string having been lost at this point.
-			// So let's just admit defeat:
-			goto _sendError;
-		}
-		if (memPoolExtend(&fileNamePool, DEFAULT_INDEX) != 0)
-			goto _sendError500;
-		if (stat(fileName, &st) < 0) {
-			#if LOG_LEVEL > 2
-			Log(socket, "%15s  404  \"INST %s\"", client, fileName);
-			#endif
-			goto _sendError;
-		}
+		#if LOG_LEVEL > 2
+		Log(socket, "%15s  404  \"INST %s\"", client, fileName);
+		#endif
+		goto _sendError;
 		#endif
 	}
-	#endif
 	
+_foundFile:
+
 	if (!S_ISREG(st.st_mode)) {
 		#if LOG_LEVEL > 2
 		Log(socket, "%15s  404  \"REGF %s\"", client, fileName);

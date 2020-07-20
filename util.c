@@ -282,7 +282,7 @@ int openFileForWriting(MemPool *fileNamePool, char *resource) {
 			#if DEBUG & 1024
 			Log(0, "OFFW: file=\"%s\"", fileNamePool->mem);
 			#endif
-			return open(fileNamePool->mem, O_CREAT | O_WRONLY, 0755); // open file for writing
+			return open(fileNamePool->mem, O_CREAT | O_TRUNC | O_WRONLY, 0755); // open file for writing
 		}
 		if (stat(fileNamePool->mem, &st)) {
 			if (mkdir(fileNamePool->mem, 0755)) // path component does not exist, create directory
@@ -293,7 +293,7 @@ int openFileForWriting(MemPool *fileNamePool, char *resource) {
 }
 #endif
 
-#ifdef AUTO_INDEX
+#if AUTO_INDEX == 1
 enum ErrorState fileWriteChar(FILE *file, const char c) {
 	return fputc(c, file) != c;
 }
