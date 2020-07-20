@@ -57,8 +57,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #if USE_SENDFILE == 1
 #include <sys/sendfile.h>
-#else
-#define sendFile(socket, fd, count) pipeToSocket(socket, fd, count)
 #endif
 
 #define SERVER_NAME       "mrhttpd"
@@ -97,7 +95,7 @@ enum ConnectionState httpRequest(const int);
 
 // io
 void setTimeout(const int);
-int receiveHeader(const int, StringPool *, MemPool *);
+int parseHeader(const int, MemPool *, StringPool *);
 ssize_t sendMemPool(const int, const MemPool *);
 ssize_t sendBuffer(const int, const char *, const ssize_t);
 ssize_t sendFile(const int, const int, const ssize_t);

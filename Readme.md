@@ -34,7 +34,7 @@ The documentation you are reading right now has originally been written in plain
 
 ## Concept & Restrictions
 
-Mrhttpd is a threaded web server that is lightning fast, simple, robust, secure and has a very small memory footprint. The binary is 15 to 20 kilobytes in size, depending on configuration and CPU architecture. mrhttpd serves files at 3 to 4 times the throughput of Apache and runs CGI scripts. It is not designed to implement the full HTTP protocol. Since version 2.0 mrhttpd supports HTTP Keep-Alive. Since version 2.5 mrhttpd supports PUT and POST requests.
+Mrhttpd is a threaded web server that is lightning fast, simple, robust, secure and has a very small memory footprint. The binary is 15 to 20 kilobytes in size, depending on configuration and CPU architecture. mrhttpd serves files at 3 to 4 times the throughput of Apache and runs CGI scripts. It is not designed to implement the full HTTP protocol. Since version 2.0 mrhttpd supports HTTP Keep-Alive. Since version 2.5 mrhttpd supports PUT and POST requests for simple body uploads. Multi-part form requests are not supported at this stage.
 
 Having started as a Linux specific project taking advantage of a few Linux specific featurs, the coding should be portable to other operating systems by now. However, the runtime behaviour on other operating systems is not regularly tested. Your mileage may vary.
 
@@ -259,11 +259,13 @@ It is noticable that a fully threaded design like mrhttpd benefits particularly 
 
 ## Docker
 
-A Dockerfile is provided that can be used to build Docker images. On Docker Hub there is a pre built-image available that has been built using the configuration file mrhttpd-docker.conf in the repository. You can employ that Docker image via
+A Dockerfile is provided that can be used to build Docker images. On Docker Hub there is a pre built-image available that has been built using the configuration file `mrhttpd-docker.conf` in the repository. You can employ that Docker image via
 
 	docker run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
 
-If you want your own error pages, you can mount a directory on `/opt/mrhttpd/private`.
+If you want to display own error pages, you can mount a directory on `/opt/mrhttpd/private`.
+
+There is an alternative Docker image `dockahdockah/mrhttpd-put` built with the configuration file `mrhttpd-docker-put.conf`. It is designed to accept file uploads via PUT and POST, and provides JSON directory listings. It can be used as a simple HTTP-based file server.
 
 ## References
 

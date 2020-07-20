@@ -311,10 +311,13 @@ enum ErrorState fileWriteDirectory(FILE *file, MemPool *fileNamePool) {
 	struct dirent *dp;
 	int found = 0;
 
-	if (fileNamePool->current < 2)
-		return ERROR_TRUE;
-	if (fileNamePool->mem[fileNamePool->current - 2] != '/' && memPoolExtendChar(fileNamePool, '/'))
-		return ERROR_TRUE;
+	#if DEBUG & 1024
+	Log(0, "FWD: mem=\"%s\", current=%d", fileNamePool->mem, fileNamePool->current);
+	#endif
+	//if (fileNamePool->current < 2)
+	//	return ERROR_TRUE;
+	//if (fileNamePool->mem[fileNamePool->current - 2] != '/' && memPoolExtendChar(fileNamePool, '/'))
+	//	return ERROR_TRUE;
 	int savePosition = fileNamePool->current;
 	DIR *dir = opendir(fileNamePool->mem);
 	if (dir == NULL)

@@ -131,7 +131,7 @@ enum ConnectionState httpRequest(const int socket) {
 	#endif
 
 	// Read request header
-	if (receiveHeader(socket, &requestHeaderPool, &streamMemPool) < 0)
+	if (parseHeader(socket, &streamMemPool, &requestHeaderPool) < 0)
 		return CONNECTION_CLOSE; // socket is in undefined state
 
 	// Parse first header line
@@ -182,9 +182,6 @@ enum ConnectionState httpRequest(const int socket) {
 		statusCode = HTTP_501;
 		goto _sendError;
 	}
-
-	char *requestBodyLength = stringPoolReadVariable(&requestHeaderPool, "Content-Length");
-	contentLength = requestBodyLength == NULL ? 0 : atoi(requestBodyLength);
 
 	query = resource;
 	resource = strsep(&query, "?");
@@ -293,7 +290,7 @@ enum ConnectionState httpRequest(const int socket) {
 				#if DEBUG & 512
 				Log(socket, "CGI Fork Child: Reply header sent for %s", fileName);
 				#endif
-				if (dup2(socket, 1) == 1) { // Known Bug: the overspill from receiveHeader() is missing from the stream
+				if (dup2(socket, 1) == 1) { // Known Bug: the overspill from parseHeader() is missing from the stream
 					#if DEBUG & 512
 					Log(socket, "CGI Fork Child: Executing %s", fileName);
 					#endif
@@ -338,6 +335,28 @@ enum ConnectionState httpRequest(const int socket) {
 			statusCode = HTTP_403;
 			goto _sendError;
 		}
+		char *headerContentLength = stringPoolReadVariable(&requestHeaderPool, "Content-Length");
+		contentLength = headerContentLength == NULL ? 0 : atoi(headerContentLength);
+		char *boundary = NULL;
+		char* headerContentType = stringPoolReadVariable(&requestHeaderPool, "Content-Type");
+		contentType = strsep(&headerContentType, ";");
+		if (contentType != NULL && headerContentType != NULL && !strcmp(contentType, "multipart/form-data")) {
+			headerContentType = startOf(headerContentType);
+			if (!strncmp(headerContentType, "boundary=", 9))
+				boundary = headerContentType + 9;
+		}
+		if (boundary != NULL && *boundary != '\0') {
+		// Multi Part Form Request
+			#if DEBUG & 1024
+			Log(socket, "found multi part form request with boundary \"%s\"", boundary);
+			#endif
+			#if LOG_LEVEL > 0
+			Log(socket, "%15s  400  \"%s  %s\"", client, method, resource);
+			#endif
+			statusCode = HTTP_400;
+			goto _sendError; // multi part form request is not supported at this stage
+		}
+		// Simple Body Upload
 		int uploadFile = openFileForWriting(&fileNamePool, resource);
 		if (uploadFile < 0) {
 			#if LOG_LEVEL > 2
@@ -348,7 +367,7 @@ enum ConnectionState httpRequest(const int socket) {
 		#if DEBUG & 1024
 		Log(socket, "contentLength=\"%u\", overspill=\"%d\"", contentLength, streamMemPool.current);
 		#endif
-		if (contentLength > 0 && streamMemPool.current > 0) { // overspill from receiveHeader()
+		if (contentLength > 0 && streamMemPool.current > 0) { // overspill from parseHeader()
 			unsigned size = contentLength;
 			if (streamMemPool.current < size)
 				size = streamMemPool.current;
@@ -401,13 +420,15 @@ enum ConnectionState httpRequest(const int socket) {
 				goto _sendError500;
 		}
 		#ifdef DEFAULT_INDEX
+		int savePosition = fileNamePool.current;
 		if (memPoolExtend(&fileNamePool, DEFAULT_INDEX) != 0)
 			goto _sendError500;
 		if (stat(fileName, &st) >= 0)
 			goto _foundFile;
+		memPoolResetTo(&fileNamePool, savePosition);
 		#endif
 		#if AUTO_INDEX == 1
-		// generate auto index if default index was unsuccessful (allows to exclude directories from auto index)
+		// generate auto index if default index was unsuccessful
 		file = tmpfile();
 		if (file == NULL) {
 			#if LOG_LEVEL > 2
@@ -572,4 +593,3 @@ _sendEmptyResponse:
 	return sendMemPool(socket, &replyHeaderMemPool) >= 0 ? connectionState : CONNECTION_CLOSE;
 
 }
-
