@@ -138,8 +138,19 @@ enum ConnectionState httpRequest(const int socket) {
 	headerLine = requestHeader[0];
 	method = strsep(&headerLine, " ");
 	#ifdef PUT_PATH
-	int isUpload = !strcmp(method, "PUT") || !strcmp(method, "POST");
-	if (!isUpload && strcmp(method, "GET")) {
+	enum HttpMethod { HTTP_GET, HTTP_PUT, HTTP_POST, HTTP_DELETE };
+	int httpMethod;
+	if (!strcmp(method, "GET"))
+		httpMethod = HTTP_GET;
+	else if (!strcmp(method, "PUT"))
+		httpMethod = HTTP_PUT;
+	else if (!strcmp(method, "POST"))
+		httpMethod = HTTP_POST;
+	else if (!strcmp(method, "DELETE"))
+		httpMethod = HTTP_DELETE;
+	else
+		httpMethod = -1;
+	if (httpMethod < 0) {
 	#else
 	if (strcmp(method, "GET")) {
 	#endif
@@ -327,77 +338,100 @@ enum ConnectionState httpRequest(const int socket) {
 		goto _sendError500;
 
 	#ifdef PUT_PATH
-	if (isUpload) {
+	if (httpMethod == HTTP_PUT || httpMethod == HTTP_POST || httpMethod == HTTP_DELETE) {
 		if (strncmp(resource, PUT_PATH, strlen(PUT_PATH))) { // PUT path prefix must be present
 			#if LOG_LEVEL > 2
-			Log(socket, "%15s  403  \"PUT wrong path\"", client);
+			Log(socket, "%15s  403  \"PATH not allowed\"", client);
 			#endif
 			statusCode = HTTP_403;
 			goto _sendError;
 		}
-		char *headerContentLength = stringPoolReadVariable(&requestHeaderPool, "Content-Length");
-		contentLength = headerContentLength == NULL ? 0 : atoi(headerContentLength);
-		char *boundary = NULL;
-		char* headerContentType = stringPoolReadVariable(&requestHeaderPool, "Content-Type");
-		contentType = strsep(&headerContentType, ";");
-		if (contentType != NULL && headerContentType != NULL && !strcmp(contentType, "multipart/form-data")) {
-			headerContentType = startOf(headerContentType);
-			if (!strncmp(headerContentType, "boundary=", 9))
-				boundary = headerContentType + 9;
-		}
-		if (boundary != NULL && *boundary != '\0') {
-		// Multi Part Form Request
-			#if DEBUG & 1024
-			Log(socket, "found multi part form request with boundary \"%s\"", boundary);
-			#endif
-			#if LOG_LEVEL > 0
-			Log(socket, "%15s  400  \"%s  %s\"", client, method, resource);
-			#endif
-			statusCode = HTTP_400;
-			goto _sendError; // multi part form request is not supported at this stage
-		}
-		// Simple Body Upload
-		int uploadFile = openFileForWriting(&fileNamePool, resource);
-		if (uploadFile < 0) {
-			#if LOG_LEVEL > 2
-			Log(socket, "%15s  500  \"PUT file error %d\"", client, uploadFile);
-			#endif
-			goto _sendError500;
-		}
-		#if DEBUG & 1024
-		Log(socket, "contentLength=\"%u\", overspill=\"%d\"", contentLength, streamMemPool.current);
-		#endif
-		if (contentLength > 0 && streamMemPool.current > 0) { // overspill from parseHeader()
-			unsigned size = contentLength;
-			if (streamMemPool.current < size)
-				size = streamMemPool.current;
-			if (write(uploadFile, streamMemPool.mem, size) != size) {
+		if (httpMethod == HTTP_DELETE) {
+			if (memPoolExtend(&fileNamePool, resource)) 
+				goto _sendError500;
+			if (!stat(fileName, &st)) {
+				if (!S_ISREG(st.st_mode)) {
+					#if LOG_LEVEL > 2
+					Log(socket, "%15s  403  \"REGD %s\"", client, fileName);
+					#endif
+					statusCode = HTTP_403;
+					goto _sendError;
+				}
+				// delete file
+				if (remove(fileName) < 0) {
+					#if LOG_LEVEL > 2
+					Log(socket, "%15s  500  \"REMV %s\"", client, fileName);
+					#endif
+					goto _sendError500;
+				}
+			}
+			statusCode = HTTP_200;
+			goto _sendEmptyResponse;
+		} else {
+			char *headerContentLength = stringPoolReadVariable(&requestHeaderPool, "Content-Length");
+			contentLength = headerContentLength == NULL ? 0 : atoi(headerContentLength);
+			char *boundary = NULL;
+			char* headerContentType = stringPoolReadVariable(&requestHeaderPool, "Content-Type");
+			contentType = strsep(&headerContentType, ";");
+			if (contentType != NULL && headerContentType != NULL && !strcmp(contentType, "multipart/form-data")) {
+				headerContentType = startOf(headerContentType);
+				if (!strncmp(headerContentType, "boundary=", 9))
+					boundary = headerContentType + 9;
+			}
+			if (boundary != NULL && *boundary != '\0') {
+			// Multi Part Form Request
+				#if DEBUG & 1024
+				Log(socket, "found multi part form request with boundary \"%s\"", boundary);
+				#endif
+				#if LOG_LEVEL > 0
+				Log(socket, "%15s  400  \"%s  %s\"", client, method, resource);
+				#endif
+				statusCode = HTTP_400;
+				goto _sendError; // multi part form request is not supported at this stage
+			}
+			// Simple Body Upload
+			int uploadFile = openFileForWriting(&fileNamePool, resource);
+			if (uploadFile < 0) {
 				#if LOG_LEVEL > 2
-				Log(socket, "%15s  500  \"PUT overspill error\"", client);
+				Log(socket, "%15s  500  \"PUT file error %d\"", client, uploadFile);
+				#endif
+				goto _sendError500;
+			}
+			#if DEBUG & 1024
+			Log(socket, "contentLength=\"%u\", overspill=\"%d\"", contentLength, streamMemPool.current);
+			#endif
+			if (contentLength > 0 && streamMemPool.current > 0) { // overspill from parseHeader()
+				unsigned size = contentLength;
+				if (streamMemPool.current < size)
+					size = streamMemPool.current;
+				if (write(uploadFile, streamMemPool.mem, size) != size) {
+					#if LOG_LEVEL > 2
+					Log(socket, "%15s  500  \"PUT overspill error\"", client);
+					#endif
+					close(uploadFile);
+					goto _sendError500;
+				}
+				contentLength -= size;
+			}
+			#if DEBUG & 1024
+			Log(socket, "remaining=\"%u\"", contentLength);
+			#endif
+			if (contentLength > 0 && pipeToFile(socket, uploadFile, contentLength) < 0) {
+				#if LOG_LEVEL > 2
+				Log(socket, "%15s  500  \"PUT pipe error\"", client);
 				#endif
 				close(uploadFile);
 				goto _sendError500;
 			}
-			contentLength -= size;
+			if (close(uploadFile) < 0) {
+				#if LOG_LEVEL > 2
+				Log(socket, "%15s  500  \"PUT close error\"", client);
+				#endif
+				goto _sendError500;
+			}
+			statusCode = HTTP_200;
+			goto _sendEmptyResponse;
 		}
-		#if DEBUG & 1024
-		Log(socket, "remaining=\"%u\"", contentLength);
-		#endif
-		if (contentLength > 0 && pipeToFile(socket, uploadFile, contentLength) < 0) {
-			#if LOG_LEVEL > 2
-			Log(socket, "%15s  500  \"PUT pipe error\"", client);
-			#endif
-			close(uploadFile);
-			goto _sendError500;
-		}
-		if (close(uploadFile) < 0) {
-			#if LOG_LEVEL > 2
-			Log(socket, "%15s  500  \"PUT close error\"", client);
-			#endif
-			goto _sendError500;
-		}
-		statusCode = HTTP_200;
-		goto _sendEmptyResponse;
 	}
 	#endif
 
