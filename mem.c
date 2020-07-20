@@ -183,4 +183,3 @@ char *stringPoolReadVariable(const StringPool *sp, const char *varName) {
 	}
 	return NULL; // variable not found
 }
-

@@ -87,7 +87,7 @@ _nextHeaderLine:
 		}
 		return -1; // buffer full: we're bloated
 	}
-	buffer->mem[delim] = '\0'; // make cursor a zero-terminated string
+	buffer->mem[delim] = '\0'; // make cursor line a zero-terminated string
 	if (cursor != delim) { // line is not empty
 		if (stringPoolAdd(headerPool, buffer->mem + cursor)) // add string to header pool
 		  return -1; // header pool full or whatever
@@ -117,137 +117,8 @@ _nextHeaderLine:
 		#endif
 	}
 
-	return headerPool->current > 0 ? 0 : -1; // success if and only if there is a non-empty header line
+	return headerPool->current > 0 ? 0 : -1; // contract: at least one header line must exist
 }
-
-/*#ifdef PUT_PATH
-
-int parseMultiPartRequest(const int socket, const char *boundary,  MemPool *buffer, char *fileName) {
-	ssize_t received;
-	int parseHeader;
-	int foundfile;
-	int cursor;
-	int delim;
-
-	int beaconLength = strlen(boundary) + 2;
-	if (beaconLength > 127)
-		return -1; // out of memory
-	char beacon[128] = "--";
-	strcpy(beacon + 2, boundary);
-	parseHeader = foundFile = 0;
-	//cursor = buffer->mem;
-	cursor = 0;
-	goto _nextSegment;
-
-_startMultiPart:
-	memPoolReset(buffer);
-
-_moreMultiPart:
-	#if DEBUG & 8
-	Log(socket, "parseMultiPart: read loop iteration.");
-	#endif
-
-	received = recv(socket, buffer->mem + buffer->current, buffer->size - buffer->current, 0);
-	if (received == 0) {
-		#if DEBUG & 8
-		Log(socket, "parseMultiPart: recv strangeness. received=%d", received);
-		#endif
-		return -ESTRANGE; // error
-	}
-	if (received < 0) {
-		#if DEBUG & 8
-		Log(socket, "parseMultiPart: recv error. received=%d, errno=%d", received, errno);
-		#endif
-		//if (errno == EAGAIN)
-		//	goto _moreHeader;
-		return received; // propagate error
-	}
-	#if DEBUG & 8
-	Log(socket, "parseMultiPart: recv OK. received=%d", received);
-	#endif
-	buffer->current += received;
-	cursor = 0;
-
-_nextMultiPartLine:
-	delim = memPoolLineBreak(buffer, cursor); // search for end of line
-	#if DEBUG & 16
-	Log(socket, "parseMultiPart: parser loop iteration. cursor=%d, delim=%d, end=%d", cursor, delim, buffer->current);
-	#endif
-	if (delim < 0) { // end of line not found
-		if (cursor > 0) { // make some space and keep reading
-			buffer->current -= cursor;
-			memmove(buffer->mem, buffer->mem + cursor, buffer->current);
-			goto _moreMultiPart;
-		}
-		if (buffer->current < buffer->size) { // buffer not full: keep reading
-			goto _moreMultiPart;
-		}
-		return -1; // buffer full: we're bloated
-	}
-	buffer->mem[delim] = '\0'; // make cursor a zero-terminated string
-	if (!strncmp(cursor, beacon, beaconLength)) {
-		if (cursor[beaconLength] == '\0') {
-			parseHeader = 1;
-			foundFile = 0;
-			goto _endOfMultiPartLine;
-		}
-		else if (cursor[beaconLength] == '-' && cursor[beaconLength + 1] == '-' && cursor[beaconLength + 2] == '\0') {
-			return -1; // file content not found
-		}
-	}
-	if (parseHeader) {
-		if (cursor == delim) {
-			if (foundFile) {
-				goto _foundMultiPartFileContent;
-			} else
-				parseHeader = 0;
-		} else if (!strcmp(cursor, "Content-Disposition:", 20)) {
-			cursor += 20;
-			while (cursor != NULL && *cursor != '\0') {
-				char *detail = strsep(&cursor, ";");
-				if (detail != NULL && *detail != '\0') {
-					detail = startOf(detail);
-					detailLength = strlen(detail);
-					if (!strncmp(detail, "filename=\"", 10) && detail[detailLength - 1] == '\"') {
-						if (detailLength > 138)
-							return -1; // file name too long
-						detail[detailLength - 1] = '\0';
-						strcpy(fileName, detail + 10);
-						foundFile = 1;
-					}
-				}
-			}
-		}
-	}
-
-_endOfMultiPartLine:
-
-	cursor = delim + 2; // beginning of next line
-	if (cursor < buffer->current)
-		goto _nextMultiPartLine; // find next line in buffer
-	else
-		goto _startMultiPart; // buffer exhausted, read more data
-
-_foundMultiPartFileContent:
-
-	cursor = delim + 2;
-	if (cursor < buffer->current) { // there is some data left in the buffer, most likely the beginning of the request body.
-		buffer->current -= cursor;
-		memmove(buffer->mem, buffer->mem + cursor, buffer->current); // return the overspill via the memory pool.
-		#if DEBUG & 64
-		Log(socket, "parseMultiPart: file content returned, amount=%d", buffer->current);
-		#endif
-	} else { // no data left in the buffer
-		memPoolReset(buffer); // initialize the buffer
-		#if DEBUG & 64
-		Log(socket, "parseMultiPart: spot landing (no file content).");
-		#endif
-	}
-
-	return 0; // success if and only if there is a non-empty header line
-}
-
-#endif*/
 
 ssize_t sendMemPool(const int socket, const MemPool *mp) {
 	return sendBuffer(socket, mp->mem, mp->current);

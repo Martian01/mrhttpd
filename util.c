@@ -87,6 +87,7 @@ void Log(const int socket, const char *format, ...) {
 	pthread_mutex_unlock( &logFileMutex );
 
 }
+
 #endif
 
 
@@ -138,9 +139,9 @@ const char *mimeType(const char *fileName) {
 		{ "tar",   "application/x-tar" },
 		{ "zip",   "application/x-zip" },
 		
-/* the empty string MUST be the last entry */
+/* the NULL string must be the last entry */
 
-		{ "",      "" }
+		{ NULL,   NULL }
 	};
 
 	static const char *mimeDefault = "application/octet-stream";
@@ -151,8 +152,8 @@ const char *mimeType(const char *fileName) {
 	suffix = strrchr(fileName, '.');
 	if (suffix != NULL) {
 		suffix++;
-		for (anp=assocNames; *((*anp)[0]); anp++)
-			if (!strcmp((*anp)[0],suffix)) {
+		for (anp = assocNames; (*anp)[0] != NULL; anp++)
+			if (!strcmp((*anp)[0], suffix)) {
 				return (*anp)[1];
 			}
 	}
@@ -190,7 +191,7 @@ const char *mimeType(const char *fileName) {
 		cnt = read(pipeFd[0], buf, 63);
 		close(pipeFd[0]);
 		// eat trailing whitespace
-		while ( (cnt > 0) && iscntrl(buf[cnt-1]) )
+		while ((cnt > 0) && iscntrl(buf[cnt - 1]))
 			cnt--;
 		buf[cnt] = '\0';
 		#if DEBUG & 128
@@ -262,6 +263,7 @@ enum ErrorState fileNameEncode(const char *in, char *out, size_t outLength) {
 // Miscellaneous
 
 #ifdef PUT_PATH
+
 int openFileForWriting(MemPool *fileNamePool, char *resource) {
 	char *token;
 	struct stat st;
@@ -291,9 +293,11 @@ int openFileForWriting(MemPool *fileNamePool, char *resource) {
 			return ERROR_TRUE; // path component exists but is not a directory
 	}
 }
+
 #endif
 
 #if AUTO_INDEX == 1
+
 enum ErrorState fileWriteChar(FILE *file, const char c) {
 	return fputc(c, file) != c;
 }
@@ -314,15 +318,11 @@ enum ErrorState fileWriteDirectory(FILE *file, MemPool *fileNamePool) {
 	#if DEBUG & 1024
 	Log(0, "FWD: mem=\"%s\", current=%d", fileNamePool->mem, fileNamePool->current);
 	#endif
-	//if (fileNamePool->current < 2)
-	//	return ERROR_TRUE;
-	//if (fileNamePool->mem[fileNamePool->current - 2] != '/' && memPoolExtendChar(fileNamePool, '/'))
-	//	return ERROR_TRUE;
+	// assumption: file name ends with '/'
 	int savePosition = fileNamePool->current;
 	DIR *dir = opendir(fileNamePool->mem);
 	if (dir == NULL)
 		return ERROR_TRUE;
-
 	if (fileWriteChar(file, '['))
 		return ERROR_TRUE;
 	while ((dp = readdir(dir)) != NULL) {
@@ -355,6 +355,7 @@ enum ErrorState fileWriteDirectory(FILE *file, MemPool *fileNamePool) {
 		return ERROR_TRUE;
 	return ERROR_FALSE;
 }
+
 #endif
 
 char *strToLower(char *string) {
