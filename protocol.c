@@ -91,7 +91,7 @@ enum ConnectionState httpRequest(const int socket) {
 	char *headerLine; 
 	char *method; 
 	char *resource;
-	char *protocol;
+	char *protocol = PROTOCOL_HTTP_1_1;
 	char *query; 
 	char *connection;
 	
@@ -546,7 +546,7 @@ _sendFile:
 		stringPoolAdd(&replyHeaderPool, "\r")
 	) {
 		#if LOG_LEVEL > 0
-		Log(socket, "Memory Error preparing reply header for %s", resource);
+		Log(socket, "Memory Error preparing response header");
 		#endif
 		statusCode = HTTP_500;
 		goto _sendEmptyResponse;
@@ -618,7 +618,7 @@ _sendEmptyResponse:
 		stringPoolAdd(&replyHeaderPool, "\r")
 	) {
 		#if LOG_LEVEL > 0
-		Log(socket, "Memory Error preparing empty response %d", statusCode);
+		Log(socket, "Memory Error preparing empty response");
 		#endif
 		return CONNECTION_CLOSE;
 	}
