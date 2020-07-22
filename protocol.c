@@ -144,13 +144,11 @@ enum ConnectionState httpRequest(const int socket) {
 		httpMethod = HTTP_GET;
 	else if (!strcmp(method, "PUT"))
 		httpMethod = HTTP_PUT;
-	else if (!strcmp(method, "POST"))
-		httpMethod = HTTP_POST;
+	//else if (!strcmp(method, "POST"))
+	//	httpMethod = HTTP_POST;
 	else if (!strcmp(method, "DELETE"))
 		httpMethod = HTTP_DELETE;
-	else
-		httpMethod = -1;
-	if (httpMethod < 0) {
+	else {
 	#else
 	if (strcmp(method, "GET")) {
 	#endif
@@ -370,6 +368,7 @@ enum ConnectionState httpRequest(const int socket) {
 		} else {
 			char *headerContentLength = stringPoolReadVariable(&requestHeaderPool, "Content-Length");
 			contentLength = headerContentLength == NULL ? 0 : atoi(headerContentLength);
+			/*
 			char *boundary = NULL;
 			char* headerContentType = stringPoolReadVariable(&requestHeaderPool, "Content-Type");
 			contentType = strsep(&headerContentType, ";");
@@ -389,6 +388,7 @@ enum ConnectionState httpRequest(const int socket) {
 				statusCode = HTTP_400;
 				goto _sendError; // multi part form request is not supported at this stage
 			}
+			*/
 			// Simple Body Upload
 			int uploadFile = openFileForWriting(&fileNamePool, resource);
 			if (uploadFile < 0) {

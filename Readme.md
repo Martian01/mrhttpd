@@ -34,7 +34,7 @@ The documentation you are reading right now has originally been written in plain
 
 ## Concept & Restrictions
 
-Mrhttpd is a threaded web server that is lightning fast, simple, robust, secure and has a very small memory footprint. The binary is 15 to 20 kilobytes in size, depending on configuration and CPU architecture. mrhttpd serves files at 3 to 4 times the throughput of Apache and runs CGI scripts. It is not designed to implement the full HTTP protocol. Since version 2.0 mrhttpd supports HTTP Keep-Alive. Since version 2.5 mrhttpd supports PUT and POST requests for simple body payloads. Multi-part form requests are not supported at this stage.
+Mrhttpd is a threaded web server that is lightning fast, simple, robust, secure and has a very small memory footprint. The binary is 15 to 20 kilobytes in size, depending on configuration and CPU architecture. mrhttpd serves files at 3 to 4 times the throughput of Apache and runs CGI scripts. It is not designed to implement the full HTTP protocol. Since version 2.0 mrhttpd supports HTTP Keep-Alive. Since version 2.5 mrhttpd supports DELETE requests and PUT requests for simple body payloads. POST requests containing multi-part forms are not supported at this stage.
 
 Having started as a Linux specific project taking advantage of a few Linux specific featurs, the coding should be portable to other operating systems by now. However, the runtime behaviour on other operating systems is not regularly tested. Your mileage may vary.
 
@@ -85,7 +85,7 @@ defines the root directory for CGI scripts.
 defines the URL prefix indicating that the resource is a CGI script rather than a static file. Whenever mrhttpd finds this string at the beginning of the resource path, it assumes the resource is an executable CGI script.
 
 #### PUT_PATH
-defines the URL prefix and the base directory for uploads. A PUT, POST or DELETE request is accepted and executed if and only if mrhttpd finds this string at the beginning of the resource path.
+defines the URL prefix and the base directory for uploads. A PUT or DELETE request is accepted and executed if and only if mrhttpd finds this string at the beginning of the resource path.
 
 #### DEFAULT_INDEX
 defines the name of the default file in a directory. Typically you use "index.html" or similar. mrhttpd will serve this file if no file name is specified in the URL. For example, if a client requests http://server/path/ mrhttpd will try to send http://server/path/index.html.
@@ -265,7 +265,7 @@ A Dockerfile is provided that can be used to build Docker images. On Docker Hub 
 
 If you want to display own error pages, you can mount a directory on `/opt/mrhttpd/private`.
 
-There is an alternative Docker image `dockahdockah/mrhttpd-put` built with the configuration file `mrhttpd-docker-put.conf`. It is designed to accept file uploads via PUT and POST, and provides JSON directory listings. It can be used as a simple HTTP-based file server.
+There is an alternative Docker image `dockahdockah/mrhttpd-put` built with the configuration file `mrhttpd-docker-put.conf`. It is designed to accept file uploads and file deletions, and provides JSON directory listings. It can be used as a simple HTTP-based file server.
 
 ## References
 

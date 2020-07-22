@@ -120,6 +120,6 @@ mrhttpd v2.5.0
 ==============
 released 2020-07-15
 Functional release 
-Support for PUT, POST and DELETE
+Support for PUT and DELETE
 Automatic directory listings in JSON format
 Logging support for stdout
