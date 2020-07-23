@@ -34,7 +34,11 @@ The documentation you are reading right now has originally been written in plain
 
 ## Concept & Restrictions
 
-Mrhttpd is a threaded web server that is lightning fast, simple, robust, secure and has a very small memory footprint. The binary is 15 to 20 kilobytes in size, depending on configuration and CPU architecture. mrhttpd serves files at 3 to 4 times the throughput of Apache and runs CGI scripts. It is not designed to implement the full HTTP protocol. Since version 2.0 mrhttpd supports HTTP Keep-Alive. Since version 2.5 mrhttpd supports DELETE requests and PUT requests for simple body payloads. POST requests containing multi-part forms are not supported at this stage.
+Mrhttpd is a threaded web server that is lightning fast, simple, robust, secure and has a very small memory footprint. The binary is 15 to 20 kilobytes in size, depending on configuration and CPU architecture. mrhttpd serves files at 3 to 4 times the throughput of Apache and runs CGI scripts.
+
+Mrhttpd is not designed to implement the full HTTP protocol. Since version 2.0 mrhttpd supports HTTP Keep-Alive. Since version 2.5 mrhttpd supports DELETE requests and PUT requests for simple body payloads. POST requests containing multi-part forms are not supported at this stage.
+
+TLS encryption is not supported. You can put mrhttpd behind a reverse proxy if TLS is required.
 
 Having started as a Linux specific project taking advantage of a few Linux specific featurs, the coding should be portable to other operating systems by now. However, the runtime behaviour on other operating systems is not regularly tested. Your mileage may vary.
 
@@ -52,7 +56,7 @@ Note, however, that CGI programs are always started in a separate process (both 
 
 ## Configuration
 
-Mrhttpd is configured at compile time and only at compile time. This, in combination with the small size, makes it suitable for embedded systems.
+Mrhttpd is configured at compile time and only at compile time. In combination with the small size, this makes it suitable for embedded systems.
 
 In order to configure mrhttpd you load the file `mrhttpd.conf` into an editor. The file distributed with mrhttpd contains explanations of the possible settings as part of the commentary.
 
@@ -137,11 +141,11 @@ chooses which implementation is used for sending files. The choice is between a 
 controls whether the server sends itself into the background when it starts up. When running the server natively you will almost always want to detach. Inside a Docker container you will not want to detach it.
 
 #### QUERY_HACK
-is an option for the method of processing query strings. If this variable exists the query string of a resource will be interpreted as part of the file name, provided the resource path begins with the string in QUERY_HACK.
+is an option for the processing of query strings. If this variable exists the query string of a resource will be interpreted as part of the file name, provided the resource path begins with the string in QUERY_HACK.
 
 Example: assuming a request for a resource `index.html?sorted=yes`. Normally the server will read the file `index.html`. The query string `sorted=yes` will be omitted. If you specify QUERY_HACK=/, the processing will be different and the server will read the file `index.html?sorted=yes`.
 
-The option is named a hack because it is a violation of the HTTP specification. It is, however, useful when you have mirrored dynamic resources using wget, and wget has created fileNames containing the query part.
+The option is named a hack because it is a violation of the HTTP specification. It is, however, useful when you have mirrored dynamic resources using wget, and wget has created file names containing the query part.
 
 One note about query strings in general: for static file requests they are always ignored (unless QUERY_HACK is specified). They are passed to CGI scripts via the usual mechanism.
 
