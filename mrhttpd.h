@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.0
+mrhttpd v2.5.1
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -60,7 +60,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #define SERVER_NAME       "mrhttpd"
-#define SERVER_SOFTWARE   "mrhttpd/2.5.0"
+#define SERVER_SOFTWARE   "mrhttpd/2.5.1"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"

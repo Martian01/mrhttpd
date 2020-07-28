@@ -123,3 +123,9 @@ Functional release
 Support for PUT and DELETE
 Automatic directory listings in JSON format
 Logging support for stdout
+
+mrhttpd v2.5.1
+==============
+released 2020-07-28
+Functional release 
+Deletion of empty directories

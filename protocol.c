@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.0
+mrhttpd v2.5.1
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -336,31 +336,30 @@ enum ConnectionState httpRequest(const int socket) {
 		goto _sendError500;
 
 	#ifdef PUT_PATH
+	statusCode = HTTP_403;
 	if (httpMethod == HTTP_PUT || httpMethod == HTTP_POST || httpMethod == HTTP_DELETE) {
 		if (strncmp(resource, PUT_PATH, strlen(PUT_PATH))) { // PUT path prefix must be present
 			#if LOG_LEVEL > 2
 			Log(socket, "%15s  403  \"PATH not allowed\"", client);
 			#endif
-			statusCode = HTTP_403;
 			goto _sendError;
 		}
 		if (httpMethod == HTTP_DELETE) {
 			if (memPoolExtend(&fileNamePool, resource)) 
 				goto _sendError500;
 			if (!stat(fileName, &st)) {
-				if (!S_ISREG(st.st_mode)) {
+				if (S_ISREG(st.st_mode) || S_ISDIR(st.st_mode)) { // is file or directory
+					if (remove(fileName) < 0) { // note: a directory must be empty in order to be deleted
+						#if LOG_LEVEL > 2
+						Log(socket, "%15s  403  \"DELETE %s\"", client, fileName);
+						#endif
+						goto _sendError;
+					}
+				} else {
 					#if LOG_LEVEL > 2
-					Log(socket, "%15s  403  \"REGD %s\"", client, fileName);
+					Log(socket, "%15s  403  \"TYPE %s\"", client, fileName);
 					#endif
-					statusCode = HTTP_403;
 					goto _sendError;
-				}
-				// delete file
-				if (remove(fileName) < 0) {
-					#if LOG_LEVEL > 2
-					Log(socket, "%15s  500  \"REMV %s\"", client, fileName);
-					#endif
-					goto _sendError500;
 				}
 			}
 			statusCode = HTTP_200;
@@ -491,7 +490,7 @@ enum ConnectionState httpRequest(const int socket) {
 		goto _sendFile200;
 		#else
 		#if LOG_LEVEL > 2
-		Log(socket, "%15s  404  \"INST %s\"", client, fileName);
+		Log(socket, "%15s  404  \"FAIL %s\"", client, fileName);
 		#endif
 		goto _sendError;
 		#endif
