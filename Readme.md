@@ -1,10 +1,10 @@
 # Welcome to mrhttpd
 
-You can read the server name as Mr HTTPD if you like, although in reality the name refers to the author's initials.
+You can read the server name as Mr Httpd if you like, although in reality the name refers to the author's initials.
 
 Mrhttpd is maintained and copyrighted by Martin Rogge. The software is licensed to you under the GNU GENERAL PUBLIC LICENSE, Version 2. The complete wording of the GPL is available in the file [COPYING](COPYING).
 
-Mrhttpd was originally developed at [Sourceforge](http://sourceforge.net/projects/mrhttpd). The repository has been moved over to GitHub at some point.
+Mrhttpd was originally developed at [Sourceforge](http://sourceforge.net/projects/mrhttpd). The repository has been moved over to [GitHub](https://github.com/Martian01/mrhttpd) at some point.
 
 Before we get into more detail, here is the quick installation guide for the impatient reader:
 
@@ -30,11 +30,15 @@ Mrhttpd started as a modification of an existing open source project, called Gaz
 
 In the meantime mrhttpd has evolved significantly and the source code bears no more resemblance to ghttpd. Also the runtime behaviour shows fast performance and enterprise strength stability.
 
-The documentation you are reading right now has originally been written in plain text and incrementally extended over various mrhttpd releases. In between there was a phase when DocBook was used to generate multiple output formats.
+The documentation you are reading right now has originally been written in plain text and incrementally extended over various mrhttpd releases.
 
 ## Concept & Restrictions
 
-Mrhttpd is a threaded web server that is lightning fast, simple, robust, secure and has a very small memory footprint. The binary is 15 to 20 kilobytes in size, depending on configuration and CPU architecture. mrhttpd serves files at 3 to 4 times the throughput of Apache and runs CGI scripts. It is not designed to implement the full HTTP protocol. Since version 2.0 mrhttpd supports HTTP Keep-Alive. Since version 2.5 mrhttpd supports DELETE requests and PUT requests for simple body payloads. POST requests containing multi-part forms are not supported at this stage.
+Mrhttpd is a threaded web server that is lightning fast, simple, robust, secure and has a very small memory footprint. The binary is 15 to 20 kilobytes in size, depending on configuration and CPU architecture. mrhttpd serves files at 3 to 4 times the throughput of Apache and runs CGI scripts.
+
+Mrhttpd is not designed to implement the full HTTP protocol. Since version 2.0 mrhttpd supports HTTP Keep-Alive. Since version 2.5 mrhttpd supports DELETE requests and PUT requests for simple body payloads. POST requests containing multi-part forms are not supported at this stage.
+
+TLS encryption is not supported. You can put mrhttpd behind a reverse proxy if TLS is required.
 
 Having started as a Linux specific project taking advantage of a few Linux specific featurs, the coding should be portable to other operating systems by now. However, the runtime behaviour on other operating systems is not regularly tested. Your mileage may vary.
 
@@ -42,17 +46,17 @@ Mrhttpd is now also available as Docker image. At 2.7 MB compressed, 5.6 MB unco
 
 ## Background & History
 
-The reason I started working on mrhttpd was that I needed a web server providing simple services in my home local area network. In particular, it had to serve static files and run Perl scripts on my internet router which was a self-made and highly specialised Linux system. In fact, I had previously installed Apache web server on the internet router and run it for years. Functionally, I have never had any reason to complain about Apache. The only reason for moving away from Apache is that it is an over-dimensioned solution for my requirements.
+The reason I started working on mrhttpd was that I needed a web server providing simple services in my local area network at home. In particular, it had to serve static files and run Perl scripts on my internet router which was a self-made and highly specialised Linux system. In fact, I had previously installed Apache web server on the internet router and run it for years. Functionally, I have never had any reason to complain about Apache. The only reason for moving away from Apache is that it was an over-dimensioned solution.
 
 Not knowing much about socket programming in the beginning, I started experimenting with various open source web servers. Whilst many of them were inherently unstable and of bad performance I could learn about the basic structure of a web server. This excercise led to the first usable version of mrhttpd which was rock solid and performing well in my local area network.
 
 Eventually competitiveness got the better of me and I compared benchmark results with Apache. The astounding result was, despite being so much more concise, mrhttpd would only reach half the speed of Apache in serving files. The reason was, mrhttpd would fork a new process for every incoming connection, that is one for every GET request. Apache, on the other hand, relies on a number of already forked worker processes and distribution of work via inter-process communication. So I took up the gauntlet, did some reading about threads and finally transformed the server engine into a fully threaded design. The result was a speed increase by more than factor four when serving static files. mrhttpd was able to outperform the Apache server even when the latter used HTTP Keep-Alive (a feature that mrhttpd offers only since version 2.0).
 
-Note, however, that the high speed transfer only applies to serving static files. CGI programs are always started in a separate process (both by Apache and mrhttpd) and they are usually time consuming. I have not implemented other protocols like FastCGI because so far I had no use for it.
+Note, however, that CGI programs are always started in a separate process (both by Apache and mrhttpd) and they are usually time consuming. I have not implemented other protocols like FastCGI because so far I had no use for it.
 
 ## Configuration
 
-Mrhttpd is configured at compile time and only at compile time. This (and the small size) makes it suitable for embedded systems.
+Mrhttpd is configured at compile time and only at compile time. In combination with the small size, this makes it suitable for embedded systems.
 
 In order to configure mrhttpd you load the file `mrhttpd.conf` into an editor. The file distributed with mrhttpd contains explanations of the possible settings as part of the commentary.
 
@@ -137,11 +141,13 @@ chooses which implementation is used for sending files. The choice is between a 
 controls whether the server sends itself into the background when it starts up. When running the server natively you will almost always want to detach. Inside a Docker container you will not want to detach it.
 
 #### QUERY_HACK
-is an option for the method of processing query strings. If this variable exists the query string of a resource will be interpreted as part of the file name, provided the resource begins with the string in QUERY_HACK.
+is an option for the processing of query strings. If this variable exists the query string of a resource will be interpreted as part of the file name, provided the resource path begins with the string in QUERY_HACK.
 
-Example: assuming a request for a resource index.html?sorted=yes. Normally the server will read the file index.html. The query string sorted=yes will be omitted. If the resource is a CGI script the query string will be passed in the environment string QUERY. If you specify QUERY_HACK=index, the processing will be different and the server will read the file index.html?sorted=yes.
+Example: assuming a request for a resource `index.html?sorted=yes`. Normally the server will read the file `index.html`. The query string `sorted=yes` will be omitted. If you specify QUERY_HACK=/, the processing will be different and the server will read the file `index.html?sorted=yes`.
 
-The option is named a hack because it is a violation of the HTTP specification. It is, however, useful when you have mirrored dynamic resources using wget, and wget has created fileNames containing the query part.
+The option is named a hack because it is a violation of the HTTP specification. It is, however, useful when you have mirrored dynamic resources using wget, and wget has created file names containing the query part.
+
+One note about query strings in general: for static file requests they are always ignored (unless QUERY_HACK is specified). They are passed to CGI scripts via the usual mechanism.
 
 ## Build
 
@@ -161,7 +167,7 @@ NB: You need to be root for the latter. As an experienced user you may feel safe
 
 ## Starting and Stopping
 
-Mrhttpd is always started without parameters. If it has been configured to detach from the foreground process (option DETACH), it will send itself into the background and the foreground process will exit immediately. In either case you can do a test run from a local web browser by pointing it towards http://localhost/ (or whatever server, port and resource is appropriate in your case).
+Mrhttpd is always started without parameters. If it has been configured to detach from the foreground process (option DETACH), it will send itself into the background and the foreground process will exit immediately. In either case you can do a test run from a local web browser by pointing it towards http://localhost:8080/ (or whatever host name, port and resource is appropriate in your case).
 
 Mrhttpd will not read any configuration file at runtime. All parameters have been compiled into the binary. For that reason mrhttpd will accept a SIGHUP signal but it will not do anything.
 
@@ -172,7 +178,9 @@ Mrhttpd can be stopped by sending it the SIGINT or the SIGTERM signal, ie. you c
 	killall -2 mrhttpd
 	killall -15 mrhttpd
 
-After receiving those signals, mrhttpd will release the socket and wait 5 seconds for threads and child processes to finish. So you can start another server listening on the same port straight away. Please avoid sending a SIGKILL signal unless there is a good reason. A typical control script called rc.httpd is provided with mrhttpd. If you want to use it in a standard location like /etc/rc.d/ you need to copy it manually.
+After receiving those signals, mrhttpd will release the socket and wait 5 seconds for threads and child processes to finish. So you can start another server listening on the same port straight away. Please avoid sending a SIGKILL signal unless there is a good reason.
+
+A typical control script called rc.httpd is provided with mrhttpd. If you want to use it in a standard location like /etc/rc.d/ you need to copy it manually.
 
 	#!/bin/bash
 	#
@@ -198,29 +206,29 @@ After receiving those signals, mrhttpd will release the socket and wait 5 second
 If your system uses systemd you might want to use a service file similar to the following (untested):
 
 	[Unit]
-    Description=mrhttpd
-    StartLimitBurst=5
-    StartLimitIntervalSec=60
+	Description=mrhttpd
+	StartLimitBurst=5
+	StartLimitIntervalSec=60
 
-    [Service]
-    Type=simple
-    User=root
-    ExecStart=/usr/local/sbin/mrhttpd
-    Restart=always
-    RestartSec=10
+	[Service]
+	Type=simple
+	User=root
+	ExecStart=/usr/local/sbin/mrhttpd
+	Restart=always
+	RestartSec=5
 
-    [Install]
-    WantedBy=multi-user.target
+	[Install]
+	WantedBy=multi-user.target
 
 ## Performance
 
-Performance testing is a difficult topic. Particularly when you venture into extreme load scenarios. However, in order to detect regressions and ensure stability in normal operations I now routinely execute a high load performance test script as part of every release of mrhttpd.
+Performance testing is a difficult topic. Particularly when you venture into extreme load scenarios. However, in order to detect regressions and ensure stability in normal operations a high load performance test is available.
 
 For release 2.2 I ran the tests on my main development machine which has an Intel Core i3-530 CPU at 3500 MHz and 4GB of RAM. The CPU offers two cores with hyperthreading, resulting in 4 logical processors. The operating system was Slackware 13.37 (plus a few upgrades from Slackware Current). I ran all tests on two kernels, namely on vanilla 3.1.4 and on 3.1.4-ck2, the latter containing the BFS scheduler and the interactivity patches provided by Con Kolivas (http://ck-hack.blogspot.com/).
 
 If you want to repeat my performance tests, please observe that logging has a noticable effect on the results under the extreme work loads created by the test. The results shown here have been obtained with logging disabled for all tested HTTP servers. I have included the test script perftest.pl in the subdirectory extra of the distribution. It requires the benchmark program ab which is part of the Apache distribution.
 
-I have included the raw performance data obtained from the web servers Apache, Lighttpd and mrhttpd in CSV format (comma separated values), as produced by the test script perftest.pl. I have also included a version in ODS format, as used by LibreOffice or OpenOffice Calc. The ODS version is particularly useful for filtering rows.
+I have included the raw performance data obtained from the web servers Apache, Lighttpd and mrhttpd in CSV format (comma separated values), as produced by the test script perftest.pl.
 
 As I mentioned in the beginning, performance testing under extreme load is a difficult topic. I found I had to push certain system limits prior to be able to complete the test suite for concurrency levels above 1000 (which for the machine in question is way beyond healthy anyway). In particular I needed to run the following commands beforehand:
 
@@ -253,17 +261,17 @@ Kernel Version | Server | Keep-Alive | Requests per s | Rate | Max. response [ms
 
 The throughput offered by mrhttpd is three to four times higher than Apache and Lighttpd. Result sets at higher concurrency continue this trend, and at insane concurrency levels like 10000 or 20000 mrhttpd is the only responsive server remaining.
 
-The other stunning fact proven by these figures is the significant impact of the BFS CPU scheduler and other optimizations inherent in the CK patch, leading to almost twice the throughput compared to the vanilla kernel (which was btw configured to use the CFQ scheduler). This is even more surprising as the design goal of the CK patch is desktop interactivity rather than server throughput.
+The other stunning fact proven by these figures is the significant impact of the BFS CPU scheduler and other optimizations inherent in the CK patch, leading to almost twice the throughput compared to the vanilla kernel (using the CFQ scheduler). This is even more surprising as the design goal of the CK patch is desktop interactivity rather than server throughput.
 
 It is noticable that a fully threaded design like mrhttpd benefits particularly well from the CK patch, whereas the event-driven design of Lighttpd often seems to perform slightly better under the vanilla kernel.
 
 ## Docker
 
-A Dockerfile is provided that can be used to build Docker images. On Docker Hub there is a pre built-image available that has been built using the configuration file `mrhttpd-docker.conf` in the repository. You can employ that Docker image via
+A Dockerfile is provided that can be used to build Docker images. On Docker Hub there is a pre built-image available that has been built using the configuration file `mrhttpd-docker.conf` from the repository. You can employ that Docker image via
 
 	docker run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
 
-If you want to display own error pages, you can mount a directory on `/opt/mrhttpd/private`.
+If you want to display your own error pages, you can mount a directory on `/opt/mrhttpd/private`.
 
 There is an alternative Docker image `dockahdockah/mrhttpd-put` built with the configuration file `mrhttpd-docker-put.conf`. It is designed to accept file uploads and file deletions, and provides JSON directory listings. It can be used as a simple HTTP-based file server.
 
