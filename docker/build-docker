@@ -3,7 +3,7 @@
 # This scripts builds and pushes Docker images
 #
 # mrhttpd v2.5.2
-# Copyright c 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
+# Copyright c 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 set -e
 
