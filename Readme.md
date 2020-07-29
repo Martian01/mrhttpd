@@ -62,10 +62,13 @@ In order to configure mrhttpd you load the file `mrhttpd.conf` into an editor. T
 
 In general, the configuration file defines pairs of variables and their values separated by a "=" character. The configuration file is included in bash scripts and make files. This means the file must fulfil the syntactical requirements of both applications. For instance, bash requires that there be no spaces around the "=" sign.
 
-Let us now go through the list of variables. Note that some of these variables have become optional in v2.0 and will either default to some useful value, or disable the compilation of the associated feature. For details please refer to the sample configuration file.
+Let us now go through the list of variables. Note that many of these variables are optional and will either default to some useful value, or disable the compilation of the associated feature. For details please refer to the sample configuration file.
 
 #### SYSTEM_USER
 defines the user account under which mrhttpd will run. Note: If mrhttpd is configured to listen at a non-privileged port it need not be started as root. However, if it is started as root you should specify a user with restricted access rights here.
+
+#### PATH_PREFIX
+is a string expected at the beginning of every valid resource path. Any request without this prefix will be rejected. The prefix will be omitted from the path of the file system resource. This function is sometimes used behind URL-based load balancers.
 
 #### SERVER_PORT
 defines the TCP port the server is listening on. The default is port 8080, but you can use any other port you like. It is quite possible to run multiple server instances at the same time, each one configured for a different port.
