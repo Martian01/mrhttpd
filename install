@@ -3,7 +3,7 @@
 # This scripts does a basic installation of mrhttpd.
 #
 # mrhttpd v2.5.2
-# Copyright c 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
+# Copyright c 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 if [[ ! "$(id -u)" = "0" ]] ; then
   echo "Further processing is aborted since you are not logged in as user root."
