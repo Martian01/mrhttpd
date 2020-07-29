@@ -3,7 +3,7 @@
 # This scripts reads the mrhttpd configuration file mrhttpd.conf
 # and generates the C include config.h
 #
-# mrhttpd v2.5.1
+# mrhttpd v2.5.2
 # Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 . ./mrhttpd.conf
@@ -14,6 +14,7 @@ echo "mrhttpd configuration"
 echo "====================="
 echo
 echo "System user:           $_SYSTEM_USER"
+echo "Path prefix:           $_PATH_PREFIX"
 echo "Server port:           $_SERVER_PORT"
 echo "Server root:           $_SERVER_ROOT"
 echo "Binary directory:      $_BIN_DIR"
@@ -56,7 +57,7 @@ cat > config.h << EOF
 This include has been generated automatically. DO NOT CHANGE MANUALLY.
 Instead, change the master configuration file mrhttpd.conf and run configure.
 
-mrhttpd v2.5.1
+mrhttpd v2.5.2
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 */
@@ -65,6 +66,9 @@ EOF
 
 if [ -n "$SYSTEM_USER" ]; then
   echo '#define SYSTEM_USER     "'$SYSTEM_USER'"' >>config.h
+fi
+if [ -n "$PATH_PREFIX" ]; then
+  echo '#define PATH_PREFIX     "'$PATH_PREFIX'"' >>config.h
 fi
 if [ -n "$SERVER_PORT" ]; then
   echo '#define SERVER_PORT     '$SERVER_PORT >>config.h

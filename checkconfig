@@ -2,7 +2,7 @@
 #
 # This scripts checks the mrhttpd configuration and generates defaults
 #
-# mrhttpd v2.5.1
+# mrhttpd v2.5.2
 # Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 if [ -z "$SYSTEM_USER" ]; then
@@ -10,6 +10,12 @@ if [ -z "$SYSTEM_USER" ]; then
   WARNING=yes
 else
   _SYSTEM_USER=$SYSTEM_USER
+fi
+if [ -z "$PATH_PREFIX" ]; then
+  _PATH_PREFIX="missing, path prefix disabled"
+  WARNING=yes
+else
+  _PATH_PREFIX=$PATH_PREFIX
 fi
 if [ -z "$SERVER_ROOT" ]; then
   _SERVER_ROOT="missing, chroot function disabled"

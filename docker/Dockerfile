@@ -6,7 +6,8 @@ RUN apk add --update --no-cache bash make gcc musl-dev
 
 COPY * /tmp/build/
 COPY html/* /tmp/build/html/
-RUN cd /tmp/build && mv mrhttpd-docker.conf mrhttpd.conf && sed -i -e 's#gcc#gcc -ggdb#' -e 's#\tstrip $@##' Makefile && make install
+COPY docker/mrhttpd-docker.conf /tmp/build/mrhttpd.conf
+RUN cd /tmp/build && make install
 
 
 #

@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.1
+mrhttpd v2.5.2
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -95,7 +95,7 @@ enum ConnectionState httpRequest(const int socket) {
 	char *query; 
 	char *connection;
 	
-	int statusCode;
+	int statusCode = HTTP_400;
 
 	struct stat st;
 	FILE *file = NULL;
@@ -160,17 +160,25 @@ enum ConnectionState httpRequest(const int socket) {
 	}
 	if (headerLine == NULL) {
 		#if LOG_LEVEL > 0
-		Log(socket, "%15s  400  \"%s\"", client, method);
+		Log(socket, "%15s  400  Missing resource", client);
 		#endif
-		statusCode = HTTP_400;
 		goto _sendError; // no resource
 	}
 	resource = strsep(&headerLine, " ");
+	#ifdef PATH_PREFIX
+	if (strncmp(resource, PATH_PREFIX, strlen(PATH_PREFIX))) {
+		#if LOG_LEVEL > 0
+		Log(socket, "%15s  400  Wrong path", client);
+		#endif
+		goto _sendError;
+	} else {
+		resource += strlen(PATH_PREFIX);
+	}
+	#endif
 	if (headerLine == NULL) {
 		#if LOG_LEVEL > 0
 		Log(socket, "%15s  400  \"%s  %s\"", client, method, resource);
 		#endif
-		statusCode = HTTP_400;
 		goto _sendError; // no protocol
 	}
 	protocol = strsep(&headerLine, " ");
