@@ -88,7 +88,6 @@ enum ConnectionState httpRequest(const int socket) {
 
 	enum ConnectionState connectionState = CONNECTION_CLOSE;
 
-	char *headerLine; 
 	char *method; 
 	char *resource;
 	char *protocol = PROTOCOL_HTTP_1_1;
@@ -135,7 +134,7 @@ enum ConnectionState httpRequest(const int socket) {
 		return CONNECTION_CLOSE; // socket is in undefined state
 
 	// Parse first header line
-	headerLine = requestHeader[0];
+	char *headerLine = requestHeader[0];
 	method = strsep(&headerLine, " ");
 	#ifdef PUT_PATH
 	enum HttpMethod { HTTP_GET, HTTP_PUT, HTTP_POST, HTTP_DELETE };
@@ -164,23 +163,30 @@ enum ConnectionState httpRequest(const int socket) {
 		#endif
 		goto _sendError; // no resource
 	}
+
 	resource = strsep(&headerLine, " ");
-	#ifdef PATH_PREFIX
-	if (strncmp(resource, PATH_PREFIX, strlen(PATH_PREFIX))) {
-		#if LOG_LEVEL > 0
-		Log(socket, "%15s  400  Wrong path", client);
-		#endif
-		goto _sendError;
-	} else {
-		resource += strlen(PATH_PREFIX);
-	}
-	#endif
 	if (headerLine == NULL) {
 		#if LOG_LEVEL > 0
 		Log(socket, "%15s  400  \"%s  %s\"", client, method, resource);
 		#endif
 		goto _sendError; // no protocol
 	}
+	#ifdef PATH_PREFIX
+	if (strlen(PATH_PREFIX) < 1 || strncmp(resource, PATH_PREFIX, strlen(PATH_PREFIX))) {
+		#if LOG_LEVEL > 0
+		Log(socket, "%15s  400  Wrong path", client);
+		#endif
+		goto _sendError;
+	} else {
+		if (strlen(resource) > strlen(PATH_PREFIX))
+			resource += strlen(PATH_PREFIX);
+		else {
+			resource[0] = '/';
+			resource[1] = '\0';
+		}
+	}
+	#endif
+
 	protocol = strsep(&headerLine, " ");
 	#if LOG_LEVEL > 1
 	Log(socket, "%15s  OK   \"%s  %s %s\"", client, method, resource, protocol);
