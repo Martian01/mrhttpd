@@ -84,6 +84,8 @@ const char *connectionString[] = {
 	"Connection: close\r"
 };
 
+#define HTTP_HEADER_LENGTH 2048
+
 enum ConnectionState httpRequest(const int socket) {
 
 	enum ConnectionState connectionState = CONNECTION_CLOSE;
@@ -107,10 +109,10 @@ enum ConnectionState httpRequest(const int socket) {
 	MemPool fileNamePool = { sizeof(fileNameBuf), 0, fileNameBuf };
 	char *fileName = fileNameBuf;
 
-	char streamBuf[2048];
+	char streamBuf[HTTP_HEADER_LENGTH];
 	MemPool streamMemPool = { sizeof(streamBuf), 0, streamBuf };
 
-	char requestHeaderBuf[2048];
+	char requestHeaderBuf[HTTP_HEADER_LENGTH];
 	MemPool requestHeaderMemPool = { sizeof(requestHeaderBuf), 0, requestHeaderBuf };
 	char *requestHeader[64];
 	StringPool requestHeaderPool = { sizeof(requestHeader), 0, requestHeader, &requestHeaderMemPool };
