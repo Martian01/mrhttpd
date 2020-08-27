@@ -95,10 +95,10 @@ defines the URL prefix indicating that the resource is a CGI script rather than 
 defines the URL prefix and the base directory for uploads. A PUT or DELETE request is accepted and executed if and only if mrhttpd finds this string at the beginning of the resource path.
 
 #### DEFAULT_INDEX
-defines the name of the default file in a directory. Typically you use "index.html" or similar. mrhttpd will serve this file if no file name is specified in the URL. For example, if a client requests http://server/path/ mrhttpd will try to send http://server/path/index.html.
+defines the name of the default file in a directory. Typically you use "index.html" or similar. mrhttpd will serve this file if no file name is specified in the URL. For example, if a client requests http://server/path/ mrhttpd will send http://server/path/index.html, if such a file is present at the location "path".
 
 #### AUTO_INDEX
-controls whether the server will generate directory listings in JSON format. A default index will take precedence over auto index generation. This feature can be used to hide files and directories.
+controls whether the server will generate directory listings in JSON format. A default index will take precedence over auto index generation, if present.
 
 Note that dot files and directories like ".m2" are not listed in directories created via auto index. They are fully functional, though.
 
