@@ -98,7 +98,9 @@ defines the URL prefix and the base directory for uploads. A PUT or DELETE reque
 defines the name of the default file in a directory. Typically you use "index.html" or similar. mrhttpd will serve this file if no file name is specified in the URL. For example, if a client requests http://server/path/ mrhttpd will try to send http://server/path/index.html.
 
 #### AUTO_INDEX
-controls whether the server will generate directory listings in JSON format. A default index will take precedence over auto index generation. This allows you to exclude directories from auto index generation, for instance for security purposes.
+controls whether the server will generate directory listings in JSON format. A default index will take precedence over auto index generation. This feature can be used to hide files and directories.
+
+Note that dot files and directories like ".m2" are not listed in directories created via auto index. They are fully functional, though.
 
 #### PRAGMA
 specifies an optional Pragma parameter that is sent with every HTTP reply. A typical value is "no-cache" if you want to suppress caching by proxy servers and frontends.
