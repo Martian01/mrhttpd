@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.2
+mrhttpd v2.5.3
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -581,12 +581,7 @@ _sendFile:
 	setsockopt(socket, SOL_TCP, TCP_CORK, &option, sizeof(option));
 	#endif
 
-	if (file != NULL)
-		fclose(file);
-	else
-		close(fd);
-
-	return connectionState;
+	goto _return;
 
 _sendError500:
 
@@ -639,6 +634,23 @@ _sendEmptyResponse:
 	}
 	memPoolReplace(&replyHeaderMemPool, '\0', '\n');
 		
-	return sendMemPool(socket, &replyHeaderMemPool) >= 0 ? connectionState : CONNECTION_CLOSE;
+	if (sendMemPool(socket, &replyHeaderMemPool) < 0)
+		connectionState = CONNECTION_CLOSE;
+
+_return:
+
+	if (file != NULL) {
+		int rc = fclose(file);
+		#if LOG_LEVEL > 3
+		Log(socket, "%15s  000  \"FCLOSE %s rc=%d, errno=%d\"", client, fileName, rc, errno);
+		#endif
+	} else if (fd >= 0) {
+		int rc = close(fd);
+		#if LOG_LEVEL > 3
+		Log(socket, "%15s  000  \"CLOSE %s rc=%d, errno=%d\"", client, fileName, rc, errno);
+		#endif
+	}
+
+	return connectionState;
 
 }

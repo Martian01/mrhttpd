@@ -69,7 +69,7 @@ Full portability (untested)
 mrhttpd v2.2.0
 ==============
 released 2011-12-06
-Maintenance release 
+Maintenance release
 Bug fix for high load scenarios (socket descriptors above 1023)
 
 mrhttpd v2.3.0
@@ -83,43 +83,43 @@ Docker image on Docker Hub released: dockahdockah/mrhttpd
 mrhttpd v2.4.0
 ==============
 released 2020-06-13
-Maintenance release 
+Maintenance release
 Bug fix for rare segmentation fault (memory management function off by one)
 
 mrhttpd v2.4.1
 ==============
 released 2020-06-13
-Maintenance release 
+Maintenance release
 Hardening of memory management against out-of-memory situations
 
 mrhttpd v2.4.2
 ==============
 released 2020-06-13
-Maintenance release 
+Maintenance release
 Fix an unexplained code disappearance
 
 mrhttpd v2.4.3
 ==============
 released 2020-06-14
-Maintenance release 
+Maintenance release
 Fix more of the unexplained code disappearance, housekeeping, renaming
 
 mrhttpd v2.4.4
 ==============
 released 2020-06-17
-Maintenance release 
+Maintenance release
 Minor refactoring
 
 mrhttpd v2.4.5
 ==============
 released 2020-07-01
-Maintenance release 
+Maintenance release
 Bug fix for rare segmentation fault (triggered by broken HTTP header)
 
 mrhttpd v2.5.0
 ==============
 released 2020-07-15
-Functional release 
+Functional release
 Support for PUT and DELETE
 Automatic directory listings in JSON format
 Logging support for stdout
@@ -127,11 +127,17 @@ Logging support for stdout
 mrhttpd v2.5.1
 ==============
 released 2020-07-28
-Functional release 
+Functional release
 Deletion of empty directories
 
 mrhttpd v2.5.2
 ==============
 released 2020-07-29
-Functional release 
+Functional release
 Optional path prefix
+
+mrhttpd v2.5.3
+==============
+released 2020-08-27
+Maintenance release
+Fix for directory handle leak

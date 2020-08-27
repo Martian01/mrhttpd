@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.2
+mrhttpd v2.5.3
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -323,19 +323,25 @@ enum ErrorState fileWriteDirectory(FILE *file, MemPool *fileNamePool) {
 	DIR *dir = opendir(fileNamePool->mem);
 	if (dir == NULL)
 		return ERROR_TRUE;
-	if (fileWriteChar(file, '['))
+	if (fileWriteChar(file, '[')) {
+		closedir(dir);
 		return ERROR_TRUE;
+	}
 	while ((dp = readdir(dir)) != NULL) {
 		if (strncmp(dp->d_name, ".", 1)) {
 			memPoolExtend(fileNamePool, dp->d_name);
 			struct stat st;
-			if (stat(fileNamePool->mem, &st) < 0)
+			if (stat(fileNamePool->mem, &st) < 0) {
+				closedir(dir);
 				return ERROR_TRUE;
+			}
 			memPoolResetTo(fileNamePool, savePosition);
 			unsigned fileSize = st.st_size;
 			const char *fileType = S_ISDIR(st.st_mode) ? "dir" : (S_ISREG(st.st_mode) ? mimeType(dp->d_name) : "unknown");
-			if (found++ > 0 && fileWriteChar(file, ','))
+			if (found++ > 0 && fileWriteChar(file, ',')) {
+				closedir(dir);
 				return ERROR_TRUE;
+			}
 			if (
 				fileWriteChar(file, '{') ||
 				fileWriteString(file, "\"name\":\"") ||
@@ -347,13 +353,14 @@ enum ErrorState fileWriteDirectory(FILE *file, MemPool *fileNamePool) {
 				fileWriteString(file, "\"size\":") ||
 				fileWriteNumber(file, fileSize) ||
 				fileWriteChar(file, '}')
-			)
+			) {
+				closedir(dir);
 				return ERROR_TRUE;
+			}
 		}
 	}
-	if (fileWriteChar(file, ']'))
-		return ERROR_TRUE;
-	return ERROR_FALSE;
+	closedir(dir);
+	return fileWriteChar(file, ']') ? ERROR_TRUE : ERROR_FALSE;
 }
 
 #endif
