@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.3
+mrhttpd v2.5.4
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -363,20 +363,11 @@ enum ConnectionState httpRequest(const int socket) {
 		if (httpMethod == HTTP_DELETE) {
 			if (memPoolExtend(&fileNamePool, resource)) 
 				goto _sendError500;
-			if (!stat(fileName, &st)) {
-				if (S_ISREG(st.st_mode) || S_ISDIR(st.st_mode)) { // is file or directory
-					if (remove(fileName) < 0) { // note: a directory must be empty in order to be deleted
-						#if LOG_LEVEL > 2
-						Log(socket, "%15s  403  \"DELETE %s\"", client, fileName);
-						#endif
-						goto _sendError;
-					}
-				} else {
-					#if LOG_LEVEL > 2
-					Log(socket, "%15s  403  \"TYPE %s\"", client, fileName);
-					#endif
-					goto _sendError;
-				}
+			if (deleteFileTree(&fileNamePool)) {
+				#if LOG_LEVEL > 2
+				Log(socket, "%15s  500  \"DELETE %s\"", client, fileName);
+				#endif
+				goto _sendError500;
 			}
 			statusCode = HTTP_200;
 			goto _sendEmptyResponse;

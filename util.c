@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.3
+mrhttpd v2.5.4
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -262,6 +262,22 @@ enum ErrorState fileNameEncode(const char *in, char *out, size_t outLength) {
 
 // Miscellaneous
 
+#if defined(PUT_PATH) || (AUTO_INDEX == 1)
+
+int isValidDir(char *fileName) {
+	return
+		fileName != NULL
+			&&
+		(fileName[0] != '\0')
+			&&
+		(fileName[0] != '.' || fileName[1] != '\0')
+			&&
+		(fileName[0] != '.' || fileName[1] != '.' || fileName[2] != '\0')
+			;
+}
+
+#endif
+
 #ifdef PUT_PATH
 
 int openFileForWriting(MemPool *fileNamePool, char *resource) {
@@ -292,6 +308,35 @@ int openFileForWriting(MemPool *fileNamePool, char *resource) {
 		} else if (!S_ISDIR(st.st_mode))
 			return ERROR_TRUE; // path component exists but is not a directory
 	}
+}
+
+enum ErrorState deleteFileTree(MemPool *fileNamePool) {
+	struct stat st;
+	struct dirent *dp;
+	if (stat(fileNamePool->mem, &st))
+		return ERROR_FALSE; // file does not exist
+	if (S_ISDIR(st.st_mode)) { // directory must be empty
+		// normalize directory name
+		if (fileNamePool->current > 1 && fileNamePool->mem[fileNamePool->current - 2] != '/')
+			if (memPoolExtendChar(fileNamePool, '/')) 
+				return ERROR_TRUE;
+		DIR *dir = opendir(fileNamePool->mem);
+		if (dir == NULL)
+			return ERROR_TRUE;
+		int savePosition = fileNamePool->current;
+		while ((dp = readdir(dir)) != NULL) {
+			if (isValidDir(dp->d_name)) {
+				if (memPoolExtend(fileNamePool, dp->d_name) || deleteFileTree(fileNamePool)) {
+					//memPoolResetTo(fileNamePool, savePosition);
+					closedir(dir);
+					return ERROR_TRUE;
+				}
+				memPoolResetTo(fileNamePool, savePosition);
+			}
+		}
+		closedir(dir);
+	}
+	return remove(fileNamePool->mem) < 0 ? ERROR_TRUE : ERROR_FALSE;
 }
 
 #endif
@@ -328,10 +373,10 @@ enum ErrorState fileWriteDirectory(FILE *file, MemPool *fileNamePool) {
 		return ERROR_TRUE;
 	}
 	while ((dp = readdir(dir)) != NULL) {
-		if (strncmp(dp->d_name, ".", 1)) {
-			memPoolExtend(fileNamePool, dp->d_name);
+		if (isValidDir(dp->d_name)) {
 			struct stat st;
-			if (stat(fileNamePool->mem, &st) < 0) {
+			if (memPoolExtend(fileNamePool, dp->d_name) || stat(fileNamePool->mem, &st)) {
+				//memPoolResetTo(fileNamePool, savePosition);
 				closedir(dir);
 				return ERROR_TRUE;
 			}

@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.3
+mrhttpd v2.5.4
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -60,7 +60,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #define SERVER_NAME       "mrhttpd"
-#define SERVER_SOFTWARE   "mrhttpd/2.5.3"
+#define SERVER_SOFTWARE   "mrhttpd/2.5.4"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"
@@ -133,6 +133,7 @@ enum ErrorState fileWriteChar(FILE *, const char);
 enum ErrorState fileWriteNumber(FILE *, const unsigned);
 enum ErrorState fileWriteString(FILE *, const char *);
 enum ErrorState fileWriteDirectory(FILE *, MemPool *);
+enum ErrorState deleteFileTree(MemPool *);
 int openFileForWriting(MemPool *, char *);
 char *strToLower(char *);
 char *strToUpper(char *);

@@ -100,8 +100,6 @@ defines the name of the default file in a directory. Typically you use "index.ht
 #### AUTO_INDEX
 controls whether the server will generate directory listings in JSON format. A default index will take precedence over auto index generation, if present.
 
-Note that dot files and directories like ".m2" are not listed in directories created via auto index. They are fully functional, though.
-
 #### PRAGMA
 specifies an optional Pragma parameter that is sent with every HTTP reply. A typical value is "no-cache" if you want to suppress caching by proxy servers and frontends.
 

@@ -2,7 +2,7 @@
 #
 # This scripts checks the mrhttpd configuration and generates defaults
 #
-# mrhttpd v2.5.3
+# mrhttpd v2.5.4
 # Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 if [ -z "$SYSTEM_USER" ]; then
