@@ -114,6 +114,7 @@ const char *mimeType(const char *fileName) {
 		
 /* the following can be modified as required */
 
+		{ "md",    "text/markdown" },
 		{ "bmp",   "image/bmp" },
 		{ "mp3",   "audio/mpeg" },
 		{ "mp2",   "audio/mpeg" },
