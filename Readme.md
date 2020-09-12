@@ -40,7 +40,7 @@ Mrhttpd is not designed to implement the full HTTP protocol. Since version 2.0 m
 
 TLS encryption is not supported. You can put mrhttpd behind a reverse proxy if TLS is required.
 
-Having started as a Linux specific project taking advantage of a few Linux specific featurs, the coding should be portable to other operating systems by now. However, the runtime behaviour on other operating systems is not regularly tested. Your mileage may vary.
+Having started as a Linux-specific project taking advantage of a few Linux-specific features, the coding should be portable to other operating systems by now. However, the runtime behaviour on other operating systems is not regularly tested. Your mileage may vary.
 
 Mrhttpd is now also available as Docker image. At 2.7 MB compressed, 5.6 MB uncompressed, it is probably the smallest and fastest web server available as Docker image. Whenever you need to serve static files as part of your project, why not fire up the mrhttpd Docker image.
 
@@ -48,7 +48,7 @@ Mrhttpd is now also available as Docker image. At 2.7 MB compressed, 5.6 MB unco
 
 The reason I started working on mrhttpd was that I needed a web server providing simple services in my local area network at home. In particular, it had to serve static files and run Perl scripts on my internet router which was a self-made and highly specialised Linux system. In fact, I had previously installed Apache web server on the internet router and run it for years. Functionally, I have never had any reason to complain about Apache. The only reason for moving away from Apache is that it was an over-dimensioned solution.
 
-Not knowing much about socket programming in the beginning, I started experimenting with various open source web servers. Whilst many of them were inherently unstable and of bad performance I could learn about the basic structure of a web server. This excercise led to the first usable version of mrhttpd which was rock solid and performing well in my local area network.
+Not knowing much about socket programming in the beginning, I started experimenting with various open source web servers. Whilst many of them were inherently unstable and of bad performance I could learn about the basic structure of a web server. This exercise led to the first usable version of mrhttpd which was rock solid and performing well in my local area network.
 
 Eventually competitiveness got the better of me and I compared benchmark results with Apache. The astounding result was, despite being so much more concise, mrhttpd would only reach half the speed of Apache in serving files. The reason was, mrhttpd would fork a new process for every incoming connection, that is one for every GET request. Apache, on the other hand, relies on a number of already forked worker processes and distribution of work via inter-process communication. So I took up the gauntlet, did some reading about threads and finally transformed the server engine into a fully threaded design. The result was a speed increase by more than factor four when serving static files. mrhttpd was able to outperform the Apache server even when the latter used HTTP Keep-Alive (a feature that mrhttpd offers only since version 2.0).
 
@@ -83,7 +83,7 @@ defines the installation directory for the binary. This is the only directory no
 defines the root directory for internal files. Internal files are documents like the 404 error page.
 
 #### PUBLIC_DIR
-defines the root directory for public files (HTML, CSS, JPG, etc.), ie. the actual productive content of the web server.
+defines the root directory for public files (HTML, CSS, JPG, etc.), i.e. the actual productive content of the web server.
 
 #### CGI_DIR
 defines the root directory for CGI scripts.
@@ -101,7 +101,7 @@ defines the name of the default file in a directory. Typically you use "index.ht
 controls whether the server will generate directory listings in JSON format. A default index will take precedence over auto index generation, if present.
 
 #### PRAGMA
-specifies an optional Pragma parameter that is sent with every HTTP reply. A typical value is "no-cache" if you want to suppress caching by proxy servers and frontends.
+specifies an optional Pragma parameter that is sent with every HTTP reply. A typical value is "no-cache" if you want to suppress caching by proxy servers and front-ends.
 
 #### LOG_LEVEL
 determines the amount of information saved in the log file.
@@ -138,7 +138,7 @@ Note: the external file command and all its dependencies are relative to SERVER_
  * etc/file/magic/*
 
 #### USE_SENDFILE
-chooses which implementation is used for sending files. The choice is between a routine in user space and the kernel function sendfile(). Whilst the latter promises better performance and lower cpu load, you might want to choose the user space routine for trouble shooting. Also, on operating systems other than Linux you need to select the user space routine.
+chooses which implementation is used for sending files. The choice is between a routine in user space and the kernel function sendfile(). Whilst the latter promises better performance and lower CPU load, you might want to choose the user space routine for trouble shooting. Also, on operating systems other than Linux you need to select the user space routine.
 
 #### DETACH
 controls whether the server sends itself into the background when it starts up. When running the server natively you will almost always want to detach. Inside a Docker container you will not want to detach it.
@@ -174,7 +174,7 @@ Mrhttpd is always started without parameters. If it has been configured to detac
 
 Mrhttpd will not read any configuration file at runtime. All parameters have been compiled into the binary. For that reason mrhttpd will accept a SIGHUP signal but it will not do anything.
 
-Mrhttpd can be stopped by sending it the SIGINT or the SIGTERM signal, ie. you can say any of the following:
+Mrhttpd can be stopped by sending it the SIGINT or the SIGTERM signal, i.e. you can say any of the following:
 
 	kill -2 <pid>
 	kill -15 <pid>
@@ -229,7 +229,7 @@ Performance testing is a difficult topic. Particularly when you venture into ext
 
 For release 2.2 I ran the tests on my main development machine which has an Intel Core i3-530 CPU at 3500 MHz and 4GB of RAM. The CPU offers two cores with hyperthreading, resulting in 4 logical processors. The operating system was Slackware 13.37 (plus a few upgrades from Slackware Current). I ran all tests on two kernels, namely on vanilla 3.1.4 and on 3.1.4-ck2, the latter containing the BFS scheduler and the interactivity patches provided by Con Kolivas (http://ck-hack.blogspot.com/).
 
-If you want to repeat my performance tests, please observe that logging has a noticable effect on the results under the extreme work loads created by the test. The results shown here have been obtained with logging disabled for all tested HTTP servers. I have included the test script perftest.pl in the subdirectory extra of the distribution. It requires the benchmark program ab which is part of the Apache distribution.
+If you want to repeat my performance tests, please observe that logging has a noticeable effect on the results under the extreme work loads created by the test. The results shown here have been obtained with logging disabled for all tested HTTP servers. I have included the test script perftest.pl in the subdirectory extra of the distribution. It requires the benchmark program ab which is part of the Apache distribution.
 
 I have included the raw performance data obtained from the web servers Apache, Lighttpd and mrhttpd in CSV format (comma separated values), as produced by the test script perftest.pl.
 
@@ -266,7 +266,7 @@ The throughput offered by mrhttpd is three to four times higher than Apache and 
 
 The other stunning fact proven by these figures is the significant impact of the BFS CPU scheduler and other optimizations inherent in the CK patch, leading to almost twice the throughput compared to the vanilla kernel (using the CFQ scheduler). This is even more surprising as the design goal of the CK patch is desktop interactivity rather than server throughput.
 
-It is noticable that a fully threaded design like mrhttpd benefits particularly well from the CK patch, whereas the event-driven design of Lighttpd often seems to perform slightly better under the vanilla kernel.
+It is noticeable that a fully threaded design like mrhttpd benefits particularly well from the CK patch, whereas the event-driven design of Lighttpd often seems to perform slightly better under the vanilla kernel.
 
 ## Docker
 
