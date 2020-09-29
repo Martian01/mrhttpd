@@ -65,8 +65,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"
 
-#define ESTRANGE 1024
-
 enum ErrorState { ERROR_FALSE, ERROR_TRUE };
 
 enum ConnectionState { CONNECTION_KEEPALIVE, CONNECTION_CLOSE };
@@ -111,7 +109,6 @@ enum ErrorState memPoolExtendChar(MemPool *, const char);
 enum ErrorState memPoolExtendNumber(MemPool *, const unsigned);
 void memPoolReplace(MemPool *, const char, const char);
 int memPoolLineBreak(const MemPool *, const int);
-//
 void stringPoolReset(StringPool *);
 enum ErrorState stringPoolAdd(StringPool *, const char *);
 enum ErrorState stringPoolAddVariable(StringPool *, const char *, const char *);
