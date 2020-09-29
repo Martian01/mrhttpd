@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.4
+mrhttpd v2.5.5
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -84,8 +84,6 @@ const char *connectionString[] = {
 	"Connection: close\r"
 };
 
-#define HTTP_HEADER_LENGTH 2048
-
 enum ConnectionState httpRequest(const int socket) {
 
 	enum ConnectionState connectionState = CONNECTION_CLOSE;
@@ -132,8 +130,12 @@ enum ConnectionState httpRequest(const int socket) {
 	#endif
 
 	// Read request header
-	if (parseHeader(socket, &streamMemPool, &requestHeaderPool) < 0)
+	if (parseHeader(socket, &streamMemPool, &requestHeaderPool) < 0) {
+		#if LOG_LEVEL > 0
+		Log(socket, "%15s  FAIL \"Header broken or too large\"", client);
+		#endif
 		return CONNECTION_CLOSE; // socket is in undefined state
+	}
 
 	// Parse first header line
 	char *headerLine = requestHeader[0];
@@ -191,7 +193,7 @@ enum ConnectionState httpRequest(const int socket) {
 
 	protocol = strsep(&headerLine, " ");
 	#if LOG_LEVEL > 1
-	Log(socket, "%15s  OK   \"%s  %s %s\"", client, method, resource, protocol);
+	Log(socket, "%15s  OK   \"%s %s %s\"", client, method, resource, protocol);
 	#endif
 
 	connection = strToLower(stringPoolReadVariable(&requestHeaderPool, "Connection"));
@@ -236,7 +238,7 @@ enum ConnectionState httpRequest(const int socket) {
 
 	if (strstr(resource, "/..")) {
 		#if LOG_LEVEL > 0
-		Log(socket, "%15s  403  \"SEC  %s %s\"", client, resource, protocol);
+		Log(socket, "%15s  403  \"SEC %s %s\"", client, resource, protocol);
 		#endif
 		statusCode = HTTP_403;
 		goto _sendError; // potential security risk - zero tolerance
@@ -251,27 +253,27 @@ enum ConnectionState httpRequest(const int socket) {
 			goto _sendError500;
 		if (stat(fileName, &st)) {
 			#if LOG_LEVEL > 2
-			Log(socket, "%15s  404  \"CGI  %s %s\"", client, fileName, query == NULL ? "" : query);
+			Log(socket, "%15s  404  \"CGI %s %s\"", client, fileName, query == NULL ? "" : query);
 			#endif
 			statusCode = HTTP_404;
 			goto _sendError;
 		}
 		if (!S_ISREG(st.st_mode)) {
 			#if LOG_LEVEL > 2
-			Log(socket, "%15s  403  \"CGI  %s %s\"", client, fileName, query == NULL ? "" : query);
+			Log(socket, "%15s  403  \"CGI %s %s\"", client, fileName, query == NULL ? "" : query);
 			#endif
 			statusCode = HTTP_403;
 			goto _sendError;
 		}
 		if (access(fileName, X_OK)) {
 			#if LOG_LEVEL > 2
-			Log(socket, "%15s  503  \"CGI  %s %s\"", client, fileName, query == NULL ? "" : query);
+			Log(socket, "%15s  503  \"CGI %s %s\"", client, fileName, query == NULL ? "" : query);
 			#endif
 			statusCode = HTTP_503;
 			goto _sendError;
 		}
 		#if LOG_LEVEL > 3
-		Log(socket, "%15s  000  \"CGI  %s %s\"", client, fileName, query == NULL ? "" : query);
+		Log(socket, "%15s  000  \"CGI %s %s\"", client, fileName, query == NULL ? "" : query);
 		#endif
 
 		// set up environment of cgi program

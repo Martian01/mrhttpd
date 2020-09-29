@@ -143,6 +143,9 @@ chooses which implementation is used for sending files. The choice is between a 
 #### DETACH
 controls whether the server sends itself into the background when it starts up. When running the server natively you will almost always want to detach. Inside a Docker container you will not want to detach it.
 
+#### HTTP_HEADER_LENGTH
+defines the maximum HTTP header length. The term HTTP header refers to the combination of the request line, the individual headers, and the CRLF terminator.
+
 #### QUERY_HACK
 is an option for the processing of query strings. If this variable exists the query string of a resource will be interpreted as part of the file name, provided the resource path begins with the string in QUERY_HACK.
 

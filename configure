@@ -3,7 +3,7 @@
 # This scripts reads the mrhttpd configuration file mrhttpd.conf
 # and generates the C include config.h
 #
-# mrhttpd v2.5.4
+# mrhttpd v2.5.5
 # Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 . ./mrhttpd.conf
@@ -31,6 +31,7 @@ echo "Log file:              $_LOG_FILE"
 echo "External file command: $_EXT_FILE_CMD"
 echo "Sendfile option:       $_USE_SENDFILE"
 echo "Detach option:         $_DETACH"
+echo "HTTP header length:    $_HTTP_HEADER_LENGTH"
 echo "Query string hack:     $_QUERY_HACK"
 echo 
 
@@ -57,7 +58,7 @@ cat > config.h << EOF
 This include has been generated automatically. DO NOT CHANGE MANUALLY.
 Instead, change the master configuration file mrhttpd.conf and run configure.
 
-mrhttpd v2.5.4
+mrhttpd v2.5.5
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 */
@@ -65,58 +66,65 @@ Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 EOF
 
 if [ -n "$SYSTEM_USER" ]; then
-  echo '#define SYSTEM_USER     "'$SYSTEM_USER'"' >>config.h
+  echo '#define SYSTEM_USER         "'$SYSTEM_USER'"' >>config.h
 fi
 if [ -n "$PATH_PREFIX" ]; then
-  echo '#define PATH_PREFIX     "'$PATH_PREFIX'"' >>config.h
+  echo '#define PATH_PREFIX         "'$PATH_PREFIX'"' >>config.h
 fi
 if [ -n "$SERVER_PORT" ]; then
-  echo '#define SERVER_PORT     '$SERVER_PORT >>config.h
-  echo '#define SERVER_PORT_STR "'$SERVER_PORT'"' >>config.h
+  echo '#define SERVER_PORT         '$SERVER_PORT >>config.h
+  echo '#define SERVER_PORT_STR     "'$SERVER_PORT'"' >>config.h
 fi
 if [ -n "$SERVER_ROOT" ]; then
-  echo '#define SERVER_ROOT     "'$SERVER_ROOT'"' >>config.h
+  echo '#define SERVER_ROOT         "'$SERVER_ROOT'"' >>config.h
 fi
 if [ -n "$BIN_DIR" ]; then
-  echo '#define BIN_DIR         "'$BIN_DIR'"' >>config.h
+  echo '#define BIN_DIR             "'$BIN_DIR'"' >>config.h
 fi
 if [ -n "$PRIVATE_DIR" ]; then
-  echo '#define PRIVATE_DIR     "'$PRIVATE_DIR'"' >>config.h
+  echo '#define PRIVATE_DIR         "'$PRIVATE_DIR'"' >>config.h
 fi
 if [ -n "$PUBLIC_DIR" ]; then
-  echo '#define PUBLIC_DIR         "'$PUBLIC_DIR'"' >>config.h
+  echo '#define PUBLIC_DIR          "'$PUBLIC_DIR'"' >>config.h
 fi
 if [ -n "$CGI_PATH" ]; then
-  echo '#define CGI_PATH         "'$CGI_PATH'"' >>config.h
-  echo '#define CGI_DIR         "'$CGI_DIR'"' >>config.h
+  echo '#define CGI_PATH            "'$CGI_PATH'"' >>config.h
+fi
+if [ -n "$CGI_DIR" ]; then
+  echo '#define CGI_DIR             "'$CGI_DIR'"' >>config.h
 fi
 if [ -n "$PUT_PATH" ]; then
-  echo '#define PUT_PATH         "'$PUT_PATH'"' >>config.h
+  echo '#define PUT_PATH            "'$PUT_PATH'"' >>config.h
 fi
 if [ -n "$DEFAULT_INDEX" ]; then
-  echo '#define DEFAULT_INDEX   "'$DEFAULT_INDEX'"' >>config.h
+  echo '#define DEFAULT_INDEX       "'$DEFAULT_INDEX'"' >>config.h
 fi
 if [ -n "$AUTO_INDEX" ]; then
-  echo '#define AUTO_INDEX      '$AUTO_INDEX >>config.h
+  echo '#define AUTO_INDEX          '$AUTO_INDEX >>config.h
 fi
 if [ -n "$PRAGMA" ]; then
-  echo '#define PRAGMA          "'$PRAGMA'"' >>config.h
+  echo '#define PRAGMA              "'$PRAGMA'"' >>config.h
 fi
-echo '#define LOG_LEVEL       '$LOG_LEVEL >>config.h
 if [ -n "$LOG_FILE" ]; then
-  echo '#define LOG_FILE        "'$LOG_FILE'"' >>config.h
+  echo '#define LOG_LEVEL           '$LOG_LEVEL >>config.h
+fi
+if [ -n "$LOG_FILE" ]; then
+  echo '#define LOG_FILE            "'$LOG_FILE'"' >>config.h
 fi
 if [ -n "$EXT_FILE_CMD" ]; then
-  echo '#define EXT_FILE_CMD    "'$EXT_FILE_CMD'"' >>config.h
+  echo '#define EXT_FILE_CMD        "'$EXT_FILE_CMD'"' >>config.h
 fi
 if [ -n "$USE_SENDFILE" ]; then
   echo '#define USE_SENDFILE        '$USE_SENDFILE >>config.h
 fi
 if [ -n "$DETACH" ]; then
-  echo '#define DETACH          '$DETACH >>config.h
+  echo '#define DETACH              '$DETACH >>config.h
+fi
+if [ -n "$HTTP_HEADER_LENGTH" ]; then
+  echo '#define HTTP_HEADER_LENGTH  '$HTTP_HEADER_LENGTH >>config.h
 fi
 if [ -n "$QUERY_HACK" ]; then
-  echo '#define QUERY_HACK      "'$QUERY_HACK'"' >>config.h
+  echo '#define QUERY_HACK          "'$QUERY_HACK'"' >>config.h
 fi
 echo >>config.h
 

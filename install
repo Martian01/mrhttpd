@@ -2,7 +2,7 @@
 #
 # This scripts does a basic installation of mrhttpd.
 #
-# mrhttpd v2.5.4
+# mrhttpd v2.5.5
 # Copyright c 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 if [[ ! "$(id -u)" = "0" ]] ; then

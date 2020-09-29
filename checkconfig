@@ -2,7 +2,7 @@
 #
 # This scripts checks the mrhttpd configuration and generates defaults
 #
-# mrhttpd v2.5.4
+# mrhttpd v2.5.5
 # Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 if [ -z "$SYSTEM_USER" ]; then
@@ -135,6 +135,13 @@ if [ -z "$DETACH" ]; then
   WARNING=yes
 else
   _DETACH=$DETACH
+fi
+if [ -z "$HTTP_HEADER_LENGTH" ]; then
+  _HTTP_HEADER_LENGTH="missing, default: 2048"
+  HTTP_HEADER_LENGTH=2048
+  WARNING=yes
+else
+  _HTTP_HEADER_LENGTH=$HTTP_HEADER_LENGTH
 fi
 if [ -z "$QUERY_HACK" ]; then
   _QUERY_HACK="missing, OK"

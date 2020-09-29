@@ -1,14 +1,14 @@
 #!/bin/bash
 #
-# This scripts builds and pushes Docker images
+# This scripts builds Docker images for the purpose of testing
 #
 # mrhttpd v2.5.5
 # Copyright c 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 set -e
 
-PREFIX=dockahdockah/
-SUFFIX=:latest
+PREFIX=test/
+SUFFIX=:test
 
 if [ -f mrhttpd.h ] ; then
 
@@ -16,22 +16,12 @@ if [ -f mrhttpd.h ] ; then
 	docker build -f docker/Dockerfile-put -t ${PREFIX}mrhttpd-put${SUFFIX} .
 	docker build -f docker/Dockerfile-fs -t ${PREFIX}mrhttpd-fs${SUFFIX} .
 	docker build -f docker/Dockerfile-fs-log -t ${PREFIX}mrhttpd-fs-log${SUFFIX} .
+	docker build -f docker/Dockerfile-all -t ${PREFIX}mrhttpd-all${SUFFIX} .
 
 	echo
 	echo "-------------"
-	echo "Build Success"
+	echo "Test Success"
 	echo "-------------"
-	echo
-
-	docker push ${PREFIX}mrhttpd${SUFFIX}
-	docker push ${PREFIX}mrhttpd-put${SUFFIX}
-	docker push ${PREFIX}mrhttpd-fs${SUFFIX}
-	docker push ${PREFIX}mrhttpd-fs-log${SUFFIX}
-
-	echo
-	echo "--------------"
-	echo "Upload Success"
-	echo "--------------"
 	echo
 
 else

@@ -147,3 +147,9 @@ mrhttpd v2.5.4
 released 2020-09-02
 Functional release
 Deletion of directory trees
+
+mrhttpd v2.5.5
+==============
+released 2020-09-29
+Functional release
+HTTP header length configurable
