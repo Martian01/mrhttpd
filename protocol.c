@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.5
+mrhttpd v2.5.6
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -130,9 +130,11 @@ enum ConnectionState httpRequest(const int socket) {
 	#endif
 
 	// Read request header
-	if (parseHeader(socket, &streamMemPool, &requestHeaderPool) < 0) {
+	int rc = parseHeader(socket, &streamMemPool, &requestHeaderPool);
+	if (rc <= 0) {
 		#if LOG_LEVEL > 0
-		Log(socket, "%15s  FAIL \"Header broken or too large\"", client);
+		if (rc == 0)
+			Log(socket, "%15s  FAIL \"Header broken or too large\"", client);
 		#endif
 		return CONNECTION_CLOSE; // socket is in undefined state
 	}
@@ -633,12 +635,12 @@ _sendEmptyResponse:
 _return:
 
 	if (file != NULL) {
-		int rc = fclose(file);
+		rc = fclose(file);
 		#if LOG_LEVEL > 3
 		Log(socket, "%15s  000  \"FCLOSE %s rc=%d, errno=%d\"", client, fileName, rc, errno);
 		#endif
 	} else if (fd >= 0) {
-		int rc = close(fd);
+		rc = close(fd);
 		#if LOG_LEVEL > 3
 		Log(socket, "%15s  000  \"CLOSE %s rc=%d, errno=%d\"", client, fileName, rc, errno);
 		#endif

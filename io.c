@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.5
+mrhttpd v2.5.6
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -55,7 +55,7 @@ _moreHeader:
 		#if DEBUG & 8
 		Log(socket, "parseHeader: recv strangeness. received=0");
 		#endif
-		return -1; // header incomplete
+		return -1; // socket timeout
 	}
 	if (received < 0) {
 		#if DEBUG & 8
@@ -83,12 +83,12 @@ _nextHeaderLine:
 		if (buffer->current < buffer->size) { // buffer not full: keep reading
 			goto _moreHeader;
 		}
-		return -1; // buffer full: we're bloated
+		return 0; // 0 indicates an error: buffer overflow
 	}
 	buffer->mem[delim] = '\0'; // make cursor line a zero-terminated string
 	if (cursor != delim) { // line is not empty
 		if (stringPoolAdd(headerPool, buffer->mem + cursor)) // add string to header pool
-		  return -1; // header pool full or whatever
+		  return -1; // header pool overflow
 		#if DEBUG & 32
 		Log(socket, "parseHeader: parser found header at index: %d", cursor);
 		#endif
@@ -115,7 +115,7 @@ _nextHeaderLine:
 		#endif
 	}
 
-	return headerPool->current > 0 ? 0 : -1; // contract: at least one header line must exist
+	return headerPool->current; // 0 indicates an error: no header line found
 }
 
 ssize_t sendMemPool(const int socket, const MemPool *mp) {
@@ -134,7 +134,7 @@ ssize_t sendBuffer(const int socket, const char *buf, const ssize_t count) {
 			#if DEBUG & 2
 			Log(socket, "sendBuffer: send strangeness. sent=%d", sent);
 			#endif
-			return -1; // cannot send
+			return -1; // timeout
 		}
 		if (sent < 0) {
 			#if DEBUG & 2
@@ -169,7 +169,7 @@ ssize_t sendFile(const int socket, const int fd, const ssize_t count) {
 			#if DEBUG & 2
 			Log(socket, "sendFile: pipe strangeness. sent=%d", sent);
 			#endif
-			return -1; // cannot send
+			return -1; // timeout
 		}
 		if (sent < 0 ) {
 			#if DEBUG & 2
