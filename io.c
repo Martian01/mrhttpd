@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.6
+mrhttpd v2.5.7
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -39,6 +39,7 @@ int parseHeader(const int socket, MemPool *buffer, StringPool *headerPool) {
 	ssize_t received;
 	int cursor;
 	int delim;
+	int rejectCurrent = 0;
 
 	stringPoolReset(headerPool);
 
@@ -70,33 +71,69 @@ _moreHeader:
 	cursor = 0; // cursor positioned on beginning of line
 
 _nextHeaderLine:
+	if (cursor >= buffer->current)
+		goto _startHeader; // buffer exhausted, read more data
 	delim = memPoolLineBreak(buffer, cursor); // search for end of line
 	#if DEBUG & 16
 	Log(socket, "parseHeader: parser loop iteration. cursor=%d, delim=%d, end=%d", cursor, delim, buffer->current);
 	#endif
 	if (delim < 0) { // end of line not found
+		if (rejectCurrent) {
+			#if DEBUG & 32
+			Log(socket, "parseHeader: reject buffer with length: %d", buffer->current);
+			#endif
+			goto _startHeader;
+		}
 		if (cursor > 0) { // make some space and keep reading
+			#if DEBUG & 32
+			Log(socket, "parseHeader: move buffer by: %d", cursor);
+			#endif
 			buffer->current -= cursor;
 			memmove(buffer->mem, buffer->mem + cursor, buffer->current);
 			goto _moreHeader;
 		}
 		if (buffer->current < buffer->size) { // buffer not full: keep reading
+			#if DEBUG & 32
+			Log(socket, "parseHeader: top up buffer");
+			#endif
 			goto _moreHeader;
 		}
-		return 0; // 0 indicates an error: buffer overflow
+		// buffer overflow
+		if (headerPool->current > 0) {
+			#if DEBUG & 32
+			Log(socket, "parseHeader: beginning to reject at index: %d", cursor);
+			#endif
+			rejectCurrent = 1; // keep reading but skip the current header
+			goto _startHeader;
+		}
+		return 0; // request line could not be read	
 	}
 	buffer->mem[delim] = '\0'; // make cursor line a zero-terminated string
-	if (cursor != delim) { // line is not empty
-		if (stringPoolAdd(headerPool, buffer->mem + cursor)) // add string to header pool
-		  return -1; // header pool overflow
+	if (rejectCurrent) {
 		#if DEBUG & 32
-		Log(socket, "parseHeader: parser found header at index: %d", cursor);
+		Log(socket, "parseHeader: rejct chunk at index: %d", cursor);
+		#endif
+		rejectCurrent = 0;
+		cursor = delim + 2; // beginning of next line
+		goto _nextHeaderLine; // find next line in buffer
+	}
+	if (cursor != delim) { // line is not empty
+		if (stringPoolAdd(headerPool, buffer->mem + cursor)) { // add string to header pool
+			if (headerPool->current == 0) { // request line
+				#if DEBUG & 32
+				Log(socket, "parseHeader: abort at index: %d", cursor);
+				#endif
+				return -1;
+			}
+			#if DEBUG & 32
+			Log(socket, "parseHeader: skip header at index: %d", cursor);
+			#endif
+		}
+		#if DEBUG & 32
+		else { Log(socket, "parseHeader: recorded header at index: %d", cursor); }
 		#endif
 		cursor = delim + 2; // beginning of next line
-		if (cursor < buffer->current)
-			goto _nextHeaderLine; // find next line in buffer
-		else
-			goto _startHeader; // buffer exhausted, read more data
+		goto _nextHeaderLine; // find next line in buffer
 	}
 
 	// else: empty line found == end of header
@@ -115,7 +152,7 @@ _nextHeaderLine:
 		#endif
 	}
 
-	return headerPool->current; // 0 indicates an error: no header line found
+	return headerPool->current; // 0 indicates an error: request line not found
 }
 
 ssize_t sendMemPool(const int socket, const MemPool *mp) {

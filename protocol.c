@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.6
+mrhttpd v2.5.7
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -138,6 +138,11 @@ enum ConnectionState httpRequest(const int socket) {
 		#endif
 		return CONNECTION_CLOSE; // socket is in undefined state
 	}
+
+	#if DEBUG & 32
+	for (char **rh = requestHeader, i = requestHeaderPool.current; i > 0; rh++, i--)
+		Log(socket, "request header: %s", *rh);
+	#endif
 
 	// Parse first header line
 	char *headerLine = requestHeader[0];

@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.6
+mrhttpd v2.5.7
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifndef MRHTTPD_INCLUDE
 #define MRHTTPD_INCLUDE
-
-#define DEBUG 0
 
 #define _REENTRANT
 
@@ -60,7 +58,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #define SERVER_NAME       "mrhttpd"
-#define SERVER_SOFTWARE   "mrhttpd/2.5.6"
+#define SERVER_SOFTWARE   "mrhttpd/2.5.7"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"
@@ -85,8 +83,12 @@ typedef struct {
 // main
 int main(void);
 void *serverThread(void *);
-void sigtermHandler(const int);
-void sigchldHandler(const int);
+void reaper();
+void shutDownServer();
+void sigTermHandler(const int);
+void sigIntHandler(const int);
+void sigHupHandler(const int);
+void sigChldHandler(const int);
 
 // protocol
 enum ConnectionState httpRequest(const int);

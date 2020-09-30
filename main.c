@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.5.6
+mrhttpd v2.5.7
 Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -57,10 +57,10 @@ int main(void) {
 	}
 
 	// Set up signal handlers
-	signal(SIGTERM, sigtermHandler);
-	signal(SIGINT,  sigtermHandler);
-	signal(SIGHUP,  sigchldHandler);
-	signal(SIGCHLD, sigchldHandler);
+	signal(SIGTERM, sigTermHandler);
+	signal(SIGINT,  sigIntHandler);
+	signal(SIGHUP,  sigHupHandler);
+	signal(SIGCHLD, sigChldHandler);
 
 	// Ignore SIGPIPE which can be thrown by sendfile()
 	signal(SIGPIPE, SIG_IGN);
@@ -121,11 +121,11 @@ int main(void) {
 	// Server loop - exit only via signal handler
 	for (;;) {
 		#if DEBUG & 4
-		Log(masterFd, "Debug: start of accept.");
+		Log(masterFd, "Accept");
 		#endif
 		newFd = accept(masterFd, NULL, NULL);
 		#if DEBUG & 4
-		Log(masterFd, "Debug: return from accept.");
+		Log(masterFd, "New connection for socket %d", newFd);
 		#endif
 		if (newFd >= 0) {
 			// Spawn thread to handle new socket
@@ -143,7 +143,7 @@ int main(void) {
 				//
 				close(newFd);
 				#if DEBUG & 128
-				Log(masterFd, "Debug: creation of worker thread failed. Socket = %d", newFd);
+				Log(masterFd, "Creation of worker thread failed for socket %d", newFd);
 				#endif
 			}
 		}
@@ -157,7 +157,7 @@ void *serverThread(void *arg) {
 	const int socket = (int) (long) arg; // Non-portable kludge to implement call-by-value;
 
 	#if DEBUG & 1
-	Log(socket, "Debug: worker thread starting.");
+	Log(socket, "Worker thread starting for socket %d", socket);
 	#endif
 	
 	setTimeout(socket);
@@ -170,28 +170,55 @@ void *serverThread(void *arg) {
 	close(socket);
 	
 	#if DEBUG & 1
-	Log(socket, "Debug: worker thread finished.");
+	Log(socket, "Worker thread finished for socket %d", socket);
 	#endif
 	
 	return NULL;
 }
 
-void sigtermHandler(const int signal) {
-	// Exit fairly gracefully
-	close(masterFd);
-	sleep(5); // Give threads a chance
-
-	#if (LOG_LEVEL > 0) || (DEBUG > 0)
-	LogClose(masterFd);
-	#endif
-
-	while(waitpid(-1, NULL, WNOHANG) > 0) // Clean up zombies
+void reaper() {
+	// Clean up zombies
+	while(waitpid(-1, NULL, WNOHANG) > 0)
 		;
-	exit(0);
 }
 
-void sigchldHandler(const int signal) {
-	while(waitpid(-1, NULL, WNOHANG) > 0) // Clean up zombies
-		;
+int shuttingDown = 0;
+
+void shutDownServer() {
+	if (!shuttingDown++) { // should be a mutex but hey
+		// Exit fairly gracefully
+		close(masterFd);
+		sleep(5); // Give threads a chance
+		#if (LOG_LEVEL > 0) || (DEBUG > 0)
+		LogClose(masterFd);
+		#endif
+		reaper();
+		exit(0);
+	}
+}
+
+void sigTermHandler(const int signal) {
+	#if (LOG_LEVEL > 0) || (DEBUG > 0)
+	Log(masterFd, "Terminating...");
+	#endif
+	shutDownServer();
+}
+
+void sigIntHandler(const int signal) {
+	#if (LOG_LEVEL > 0) || (DEBUG > 0)
+	Log(masterFd, "Interrupt");
+	#endif
+	shutDownServer();
+}
+
+void sigHupHandler(const int signal) {
+	#if (LOG_LEVEL > 0) || (DEBUG > 0)
+	Log(masterFd, "Hangup");
+	#endif
+	reaper();
+}
+
+void sigChldHandler(const int signal) {
+	reaper();
 }
 
