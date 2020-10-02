@@ -114,6 +114,8 @@ const char *mimeType(const char *fileName) {
 		
 /* the following can be modified as required */
 
+		{ "yml",   "text/yaml" },
+		{ "yaml",  "text/yaml" },
 		{ "md",    "text/markdown" },
 		{ "bmp",   "image/bmp" },
 		{ "mp3",   "audio/mpeg" },
@@ -124,7 +126,6 @@ const char *mimeType(const char *fileName) {
 		{ "midi",  "audio/midi" },
 		{ "mpeg",  "video/mpeg" },
 		{ "mpg",   "video/mpeg" },
-		{ "mpe",   "video/mpeg" },
 		{ "mp4",   "video/mp4" },
 		{ "3gp",   "video/3gpp" },
 		{ "mov",   "video/quicktime" },
