@@ -7,41 +7,50 @@ CFLAGS = -O3
 LDFLAGS = 
 LIBS = -lpthread
 
-include mrhttpd.conf
-
-default: mrhttpd
-
-config.h: mrhttpd.conf
-	sh configure
-
-main.o: main.c mrhttpd.h config.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c -o $@ $<
-
-protocol.o: protocol.c mrhttpd.h config.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c -o $@ $<
-
-io.o: io.c mrhttpd.h config.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c -o $@ $<
-
-mem.o: mem.c mrhttpd.h config.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c -o $@ $<
-
-util.o: util.c mrhttpd.h config.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c -o $@ $<
-
+SRC = main.c protocol.c io.c mem.c util.c mrhttpd.h
+PRE = main.i protocol.i io.i mem.i util.i
 OBJ = main.o protocol.o io.o mem.o util.o
+BIN = mrhttpd
 
-mrhttpd: $(OBJ)
-	$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
-	strip $@
+.SUFFIXES:
 
-install: mrhttpd
+# exposed targets
+
+default: $(BIN)
+	strip $<
+
+install: default
 	sh install
 
 semiclean:
-	rm -f mrhttpd protocol.o util.o mem.o io.o main.o
+	rm -f $(BIN) $(OBJ) $(PRE)
 
 clean: semiclean
 	rm -f config.h
 
 distclean: clean
+
+pre: $(PRE)
+
+# low-level targets
+
+mrhttpd.conf:
+	$(error Catastrophic error: mrhttpd.conf is missing)
+
+%.h:
+	$(error Catastrophic error: $@ is missing)
+
+%.c:
+	$(error Catastrophic error: $@ is missing)
+
+%.o: %.c $(SRC) config.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c -o $@ $<
+
+%.i: %.c $(SRC) config.h
+	$(CC) -E -P -o $@ $<
+
+config.h: mrhttpd.conf
+	sh configure
+
+mrhttpd: $(OBJ)
+	$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
