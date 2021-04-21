@@ -1,6 +1,6 @@
-# Makefile for mrhttpd v2.5.7
+# Makefile for mrhttpd v2.6.0
 #
-# Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
+# Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 CC = gcc
 CFLAGS = -O3

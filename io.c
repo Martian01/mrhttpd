@@ -1,7 +1,7 @@
 /*
 
-mrhttpd v2.5.7
-Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
+mrhttpd v2.6.0
+Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

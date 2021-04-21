@@ -165,3 +165,9 @@ mrhttpd v2.5.7
 released 2020-09-30
 Functional release
 Resilience against HTTP request with large headers
+
+mrhttpd v2.6.0
+==============
+released 2021-04-21
+Functional release
+Support for HEAD

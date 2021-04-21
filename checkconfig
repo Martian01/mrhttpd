@@ -2,8 +2,8 @@
 #
 # This scripts checks the mrhttpd configuration and generates defaults
 #
-# mrhttpd v2.5.7
-# Copyright (c) 2007-2011  Martin Rogge <martin_rogge@users.sourceforge.net>
+# mrhttpd v2.6.0
+# Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 if [ -z "$SYSTEM_USER" ]; then
   _SYSTEM_USER="missing, user switch disabled"

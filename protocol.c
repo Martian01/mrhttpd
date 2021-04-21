@@ -1,7 +1,7 @@
 /*
 
-mrhttpd v2.5.7
-Copyright (c) 2007-2020  Martin Rogge <martin_rogge@users.sourceforge.net>
+mrhttpd v2.6.0
+Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -19,6 +19,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mrhttpd.h"
+
+enum HttpMethod {
+	HTTP_GET,
+	HTTP_HEAD,
+	HTTP_PUT,
+	HTTP_DELETE
+};
 
 enum HttpCodeIndex {
 	HTTP_200,
@@ -147,21 +154,18 @@ enum ConnectionState httpRequest(const int socket) {
 	// Parse first header line
 	char *headerLine = requestHeader[0];
 	method = strsep(&headerLine, " ");
-	#ifdef PUT_PATH
-	enum HttpMethod { HTTP_GET, HTTP_PUT, HTTP_POST, HTTP_DELETE };
 	int httpMethod;
 	if (!strcmp(method, "GET"))
 		httpMethod = HTTP_GET;
+	else if (!strcmp(method, "HEAD"))
+		httpMethod = HTTP_HEAD;
+	#ifdef PUT_PATH
 	else if (!strcmp(method, "PUT"))
 		httpMethod = HTTP_PUT;
-	//else if (!strcmp(method, "POST"))
-	//	httpMethod = HTTP_POST;
 	else if (!strcmp(method, "DELETE"))
 		httpMethod = HTTP_DELETE;
-	else {
-	#else
-	if (strcmp(method, "GET")) {
 	#endif
+	else {
 		#if LOG_LEVEL > 0
 		Log(socket, "%15s  501  \"%s\"", client, method);
 		#endif
@@ -362,7 +366,7 @@ enum ConnectionState httpRequest(const int socket) {
 
 	#ifdef PUT_PATH
 	statusCode = HTTP_403;
-	if (httpMethod == HTTP_PUT || httpMethod == HTTP_POST || httpMethod == HTTP_DELETE) {
+	if (httpMethod == HTTP_DELETE || httpMethod == HTTP_PUT) {
 		if (strncmp(resource, PUT_PATH, strlen(PUT_PATH))) { // PUT path prefix must be present
 			#if LOG_LEVEL > 2
 			Log(socket, "%15s  403  \"PATH not allowed\"", client);
@@ -380,30 +384,9 @@ enum ConnectionState httpRequest(const int socket) {
 			}
 			statusCode = HTTP_200;
 			goto _sendEmptyResponse;
-		} else {
+		} else { // httpMethod == HTTP_PUT
 			char *headerContentLength = stringPoolReadVariable(&requestHeaderPool, "Content-Length");
 			contentLength = headerContentLength == NULL ? 0 : atoi(headerContentLength);
-			/*
-			char *boundary = NULL;
-			char* headerContentType = stringPoolReadVariable(&requestHeaderPool, "Content-Type");
-			contentType = strsep(&headerContentType, ";");
-			if (contentType != NULL && headerContentType != NULL && !strcmp(contentType, "multipart/form-data")) {
-				headerContentType = startOf(headerContentType);
-				if (!strncmp(headerContentType, "boundary=", 9))
-					boundary = headerContentType + 9;
-			}
-			if (boundary != NULL && *boundary != '\0') {
-			// Multi Part Form Request
-				#if DEBUG & 1024
-				Log(socket, "found multi part form request with boundary \"%s\"", boundary);
-				#endif
-				#if LOG_LEVEL > 0
-				Log(socket, "%15s  400  \"%s  %s\"", client, method, resource);
-				#endif
-				statusCode = HTTP_400;
-				goto _sendError; // multi part form request is not supported at this stage
-			}
-			*/
 			// Simple Body Upload
 			int uploadFile = openFileForWriting(&fileNamePool, resource);
 			if (uploadFile < 0) {
@@ -540,6 +523,9 @@ _sendFile200:
 	statusCode = HTTP_200;
 
 _sendFile:
+
+	if (httpMethod == HTTP_HEAD)
+		goto _sendEmptyResponse;
 
 	contentLength = (unsigned) st.st_size;
 	stringPoolReset(&replyHeaderPool);
