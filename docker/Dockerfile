@@ -1,7 +1,7 @@
 #
 # Build stage
 #
-FROM alpine:3.11 AS build
+FROM alpine:3 AS build
 RUN apk add --update --no-cache bash make gcc musl-dev 
 
 COPY * /tmp/build/
@@ -13,7 +13,7 @@ RUN cd /tmp/build && make install
 #
 # Package stage
 #
-FROM alpine:3.11
+FROM alpine:3
 COPY --from=build /usr/local/bin/mrhttpd /usr/local/bin/
 COPY --from=build /opt/mrhttpd /opt/mrhttpd/
 ENTRYPOINT ["/usr/local/bin/mrhttpd"]
