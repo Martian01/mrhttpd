@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.7.0
+mrhttpd v2.7.1
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -58,7 +58,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #define SERVER_NAME       "mrhttpd"
-#define SERVER_SOFTWARE   "mrhttpd/2.7.0"
+#define SERVER_SOFTWARE   "mrhttpd/2.7.1"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"
@@ -81,6 +81,10 @@ typedef struct {
 } StringPool;
 
 // main
+
+extern char *authHeader;
+extern int authMethods;
+
 int main(void);
 void *serverThread(void *);
 void reaper();
@@ -91,9 +95,11 @@ void sigHupHandler(const int);
 void sigChldHandler(const int);
 
 // protocol
+
 enum ConnectionState httpRequest(const int);
 
 // io
+
 void setTimeout(const int);
 int parseHeader(const int, MemPool *, StringPool *);
 ssize_t sendMemPool(const int, const MemPool *);
@@ -103,6 +109,7 @@ ssize_t pipeToSocket(const int, const int, const ssize_t);
 ssize_t pipeToFile(const int, const int, const ssize_t);
 
 // mem
+
 void memPoolReset(MemPool *);
 void memPoolResetTo(MemPool *, int);
 enum ErrorState memPoolAdd(MemPool *, const char *);
@@ -119,6 +126,7 @@ enum ErrorState stringPoolAddVariables(StringPool *, const StringPool *, const c
 char *stringPoolReadVariable(const StringPool *, const char *);
 
 // util
+
 extern char digit[];
 extern FILE *logFile;
 int LogOpen(const int);

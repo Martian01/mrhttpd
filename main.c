@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.7.0
+mrhttpd v2.7.1
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define LISTEN_QUEUE_LENGTH 1024 //sufficient for all tested load scenarios
 
 int masterFd;
+
+char *authHeader;
+int authMethods;
 
 int main(void) {
 	int rc;
@@ -113,9 +116,23 @@ int main(void) {
 	fclose(stdin);
 
 	#ifdef SYSTEM_USER
-	// Fall back to desired user account
+	// Fall back to (hopefully) non-privileged user account
 	setgid(pw->pw_gid);
 	setuid(pw->pw_uid);
+	#endif
+
+	// Set global authorisation parameters
+	char *envString = getenv("AUTH_METHODS");
+	#ifdef AUTH_METHODS
+	authMethods = envString == NULL ? AUTH_METHODS : atoi(envString);
+	#else
+	authMethods = envString == NULL ? -1 : atoi(envString);
+	#endif
+	#ifdef AUTH_HEADER
+	envString = getenv("AUTH_HEADER");
+	authHeader = envString == NULL ? AUTH_HEADER : envString;
+	#else
+	authHeader = getenv("AUTH_HEADER");
 	#endif
 
 	// Server loop - exit only via signal handler

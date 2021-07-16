@@ -60,7 +60,7 @@ Mrhttpd is configured at compile time and only at compile time. In combination w
 
 In order to configure mrhttpd you load the file `mrhttpd.conf` into an editor. The file distributed with mrhttpd contains explanations of the possible settings as part of the commentary.
 
-In general, the configuration file defines pairs of variables and their values separated by a "=" character. The configuration file is included in bash scripts and make files. This means the file must fulfil the syntactical requirements of both applications. For instance, bash requires that there be no spaces around the "=" sign.
+In general, the configuration file defines pairs of variables and their values separated by a "=" character. The configuration file is included in bash scripts. This means there must be no spaces around the "=" sign.
 
 Let us now go through the list of variables. Note that many of these variables are optional and will either default to some useful value, or disable the compilation of the associated feature. For details please refer to the sample configuration file.
 
@@ -166,6 +166,10 @@ Example: assuming a request for a resource `index.html?sorted=yes`. Normally the
 The option is named a hack because it is a violation of the HTTP specification. It is, however, useful when you have mirrored dynamic resources using wget, and wget has created file names containing the query part.
 
 One note about query strings in general: for static file requests they are always ignored (unless QUERY_HACK is specified). They are passed to CGI scripts via the usual mechanism.
+
+### Environment Variables
+
+The variables **AUTH_HEADER** and **AUTH_METHODS** can be injected via the environment. If present, they will override the compile-time variables. This is the only way to provide standard images for docker and kubernetes based scenarios.
 
 ## Build
 
