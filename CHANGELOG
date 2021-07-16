@@ -170,4 +170,10 @@ mrhttpd v2.6.0
 ==============
 released 2021-04-21
 Functional release
-Support for HEAD
+HTTP method HEAD
+
+mrhttpd v2.7.0
+==============
+released 2021-07-16
+Functional release
+Basic Auth

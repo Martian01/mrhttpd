@@ -3,7 +3,7 @@
 # This scripts reads the mrhttpd configuration file mrhttpd.conf
 # and generates the C include config.h
 #
-# mrhttpd v2.6.0
+# mrhttpd v2.7.0
 # Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 . ./mrhttpd.conf
@@ -32,6 +32,8 @@ echo "External file command: $_EXT_FILE_CMD"
 echo "Sendfile option:       $_USE_SENDFILE"
 echo "Detach option:         $_DETACH"
 echo "HTTP header length:    $_HTTP_HEADER_LENGTH"
+echo "Authorisation header:  $_AUTH_HEADER"
+echo "Authorisation methods: $_AUTH_METHODS"
 echo "Query string hack:     $_QUERY_HACK"
 echo 
 
@@ -58,7 +60,7 @@ cat > config.h << EOF
 This include has been generated automatically. DO NOT CHANGE MANUALLY.
 Instead, change the master configuration file mrhttpd.conf and run configure.
 
-mrhttpd v2.6.0
+mrhttpd v2.7.0
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 */
@@ -122,6 +124,12 @@ if [ -n "$DETACH" ]; then
 fi
 if [ -n "$HTTP_HEADER_LENGTH" ]; then
   echo '#define HTTP_HEADER_LENGTH  '$HTTP_HEADER_LENGTH >>config.h
+fi
+if [ -n "$AUTH_HEADER" ]; then
+  echo '#define AUTH_HEADER         "'$AUTH_HEADER'"' >>config.h
+fi
+if [ -n "$AUTH_METHODS" ]; then
+  echo '#define AUTH_METHODS        '$AUTH_METHODS >>config.h
 fi
 if [ -n "$QUERY_HACK" ]; then
   echo '#define QUERY_HACK          "'$QUERY_HACK'"' >>config.h

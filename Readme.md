@@ -148,6 +148,16 @@ defines the size of the internal HTTP header buffer.
 
 Note: the server will try to internalize as many headers as possible from the HTTP request. Hence the setting is largely irrelevant.
 
+#### AUTH_HEADER
+defines the authorisation header required for certain requests. Typically used for Basic Auth. The server will send a WWW-Authenticate header in case the Authorisation header is missing for a protected resource.
+
+#### AUTH_METHODS
+defines for which HTTP methods an authorisation header is required. The variable is an integer representing a bit string with the bits meaning:
+ * 0: GET
+ * 1: HEAD
+ * 2: PUT
+ * 3: DELETE
+
 #### QUERY_HACK
 is an option for the processing of query strings. If this variable exists the query string of a resource will be interpreted as part of the file name, provided the resource path begins with the string in QUERY_HACK.
 

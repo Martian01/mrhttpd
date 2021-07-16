@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.6.0
+mrhttpd v2.7.0
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -245,6 +245,22 @@ enum ConnectionState httpRequest(const int socket) {
 					goto _sendError500;
 				resource = newResource;
 			}
+	#endif
+
+	#ifdef AUTH_HEADER
+	int request_auth_header = 0;
+	if (AUTH_METHODS & (1 << httpMethod)) {
+		char *authHeader = stringPoolReadVariable(&requestHeaderPool, "Authorization");
+		if (authHeader == NULL) {
+			request_auth_header = 1;
+			statusCode = HTTP_401;
+			goto _sendError;
+		}
+		if (strcmp(authHeader, AUTH_HEADER)) {
+			statusCode = HTTP_401;
+			goto _sendError;
+		}
+	}
 	#endif
 
 	if (strstr(resource, "/..")) {
@@ -540,6 +556,9 @@ _sendFile:
 		#ifdef PRAGMA
 		stringPoolAdd(&replyHeaderPool, "Pragma: " PRAGMA "\r") ||
 		#endif
+		#ifdef AUTH_HEADER
+		(request_auth_header && stringPoolAdd(&replyHeaderPool, "WWW-Authenticate: Basic realm=\"Realm\"\r")) ||
+		#endif
 		stringPoolAdd(&replyHeaderPool, connectionString[connectionState]) ||
 		stringPoolAdd(&replyHeaderPool, "\r")
 	) {
@@ -607,8 +626,11 @@ _sendEmptyResponse:
 		#ifdef PRAGMA
 		stringPoolAdd(&replyHeaderPool, "Pragma: " PRAGMA "\r") ||
 		#endif
+		#ifdef AUTH_HEADER
+		(request_auth_header && stringPoolAdd(&replyHeaderPool, "WWW-Authenticate: Basic realm=\"Realm\"\r")) ||
+		#endif
 		stringPoolAdd(&replyHeaderPool, connectionString[connectionState]) ||
-		stringPoolAdd(&replyHeaderPool, "\r")
+		stringPoolAdd(&replyHeaderPool, "\r") 
 	) {
 		#if LOG_LEVEL > 0
 		Log(socket, "Memory Error preparing empty response");
