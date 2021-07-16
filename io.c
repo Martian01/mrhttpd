@@ -35,7 +35,7 @@ void setTimeout(const int socket) {
 	setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
 }
 
-int parseHeader(const int socket, MemPool *buffer, StringPool *headerPool) {
+int parseHeader(const int socket, MemPool* buffer, StringPool* headerPool) {
 	ssize_t received;
 	int cursor;
 	int delim;
@@ -155,11 +155,11 @@ _nextHeaderLine:
 	return headerPool->current; // 0 indicates an error: request line not found
 }
 
-ssize_t sendMemPool(const int socket, const MemPool *mp) {
+ssize_t sendMemPool(const int socket, const MemPool* mp) {
 	return sendBuffer(socket, mp->mem, mp->current);
 }
 
-ssize_t sendBuffer(const int socket, const char *buf, const ssize_t count) {
+ssize_t sendBuffer(const int socket, const char* buf, const ssize_t count) {
 	ssize_t totalSent = 0, sent;
 
 	while (totalSent < count) {
@@ -201,7 +201,7 @@ ssize_t sendFile(const int socket, const int fd, const ssize_t count) {
 		Log(socket, "sendFile: loop iteration.");
 		#endif
 
-		sent = sendfile(socket, fd, NULL, count - totalSent);
+		sent = sendfile(socket, fd, null, count - totalSent);
 		if (sent == 0) {
 			#if DEBUG & 2
 			Log(socket, "sendFile: pipe strangeness. sent=%d", sent);

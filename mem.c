@@ -33,20 +33,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // In a way, MemPool and StringPool are class definitions (in mrhttpd.h),
 // and the functions in this include are their instance methods.
 
-void memPoolReset(MemPool *mp) {
+void memPoolReset(MemPool* mp) {
 	mp->current = 0;
 }
 
-void memPoolResetTo(MemPool *mp, int savePosition) {
+void memPoolResetTo(MemPool* mp, int savePosition) {
 	mp->current = savePosition;
 	if (savePosition > 0)
 		mp->mem[savePosition - 1] = '\0';
 }
 
-enum ErrorState memPoolAdd(MemPool *mp, const char *string) {
+enum ErrorState memPoolAdd(MemPool* mp, const char* string) {
 	int added;
 
-	if (string == NULL)
+	if (string == null)
 		return ERROR_TRUE; // deferred detection of error condition
 
 	added = strlen(string) + 1;
@@ -58,10 +58,10 @@ enum ErrorState memPoolAdd(MemPool *mp, const char *string) {
 	return ERROR_FALSE; // success
 }
 
-enum ErrorState memPoolExtend(MemPool *mp, const char *string) {
+enum ErrorState memPoolExtend(MemPool* mp, const char* string) {
 	int target, added;
 
-	if (string == NULL)
+	if (string == null)
 		return ERROR_TRUE; // deferred detection of error condition
 
 	target = (mp->current == 0) ? 0 : (mp->current - 1);
@@ -74,7 +74,7 @@ enum ErrorState memPoolExtend(MemPool *mp, const char *string) {
 	return ERROR_FALSE; // success
 }
 
-enum ErrorState memPoolExtendChar(MemPool *mp, const char c) {
+enum ErrorState memPoolExtendChar(MemPool* mp, const char c) {
 	int target;
 
 	target = (mp->current == 0) ? 0 : (mp->current - 1);
@@ -86,12 +86,12 @@ enum ErrorState memPoolExtendChar(MemPool *mp, const char c) {
 	return ERROR_FALSE; // success
 }
 
-enum ErrorState memPoolExtendNumber(MemPool *mp, const unsigned num) {
+enum ErrorState memPoolExtendNumber(MemPool* mp, const unsigned num) {
 	return num < 10 ? memPoolExtendChar(mp, digit[num]) : (memPoolExtendNumber(mp, num / 10 ) || memPoolExtendChar(mp, digit[num % 10]));
 }
 
-void memPoolReplace(MemPool *mp, const char from, const char to) {
-	char *cp;
+void memPoolReplace(MemPool* mp, const char from, const char to) {
+	char* cp;
 	int i;
 	
 	for (cp = mp->mem, i = mp->current; i > 0; cp++, i--)
@@ -99,7 +99,7 @@ void memPoolReplace(MemPool *mp, const char from, const char to) {
 		  *cp = to;
 }
 
-int memPoolLineBreak(const MemPool *mp, const int start) {
+int memPoolLineBreak(const MemPool* mp, const int start) {
 	int i;
 	
 	for (i = start; i < mp->current - 1; i++)
@@ -108,15 +108,15 @@ int memPoolLineBreak(const MemPool *mp, const int start) {
 	return -1;
 }
 
-void stringPoolReset(StringPool *sp) {
+void stringPoolReset(StringPool* sp) {
 	memPoolReset(sp->mp);
 	sp->current = 0;
 }
 
-enum ErrorState stringPoolAdd(StringPool *sp, const char *string) {
+enum ErrorState stringPoolAdd(StringPool* sp, const char* string) {
 	int target;
 
-	if (string == NULL)
+	if (string == null)
 		return ERROR_TRUE; // deferred detection of error condition
 
 	if (sp->current >= sp->size)
@@ -130,7 +130,7 @@ enum ErrorState stringPoolAdd(StringPool *sp, const char *string) {
 	return ERROR_FALSE; // success
 }
 
-enum ErrorState stringPoolAddVariable(StringPool *sp, const char *varName, const char *value) {
+enum ErrorState stringPoolAddVariable(StringPool* sp, const char* varName, const char* value) {
 	return
 		stringPoolAdd(sp, varName) ||
 		memPoolExtend(sp->mp, "=") ||
@@ -138,7 +138,7 @@ enum ErrorState stringPoolAddVariable(StringPool *sp, const char *varName, const
 		;
 }
 
-enum ErrorState stringPoolAddVariableNumber(StringPool *sp, const char *varName, const unsigned value) {
+enum ErrorState stringPoolAddVariableNumber(StringPool* sp, const char* varName, const unsigned value) {
 	return
 		stringPoolAdd(sp, varName) ||
 		memPoolExtend(sp->mp, "=") ||
@@ -146,15 +146,15 @@ enum ErrorState stringPoolAddVariableNumber(StringPool *sp, const char *varName,
 		;
 }
 
-enum ErrorState stringPoolAddVariables(StringPool *sp, const StringPool *var, const char *prefix) {
-	char **strp;
-	char *varName, *value;
+enum ErrorState stringPoolAddVariables(StringPool* sp, const StringPool* var, const char* prefix) {
+	char** strp;
+	char* varName, *value;
 	int i;
 	
 	for (strp = var->strings, i = var->current; i > 0; strp++, i--) {
 		value = *strp;
 		varName = strsep(&value, ":");
-		if (value != NULL)
+		if (value != null)
 			if (
 					stringPoolAdd(sp, prefix) ||
 					memPoolExtend(sp->mp, strToUpper(varName)) ||
@@ -167,10 +167,10 @@ enum ErrorState stringPoolAddVariables(StringPool *sp, const StringPool *var, co
 
 }
 
-char *stringPoolReadVariable(const StringPool *sp, const char *varName) {
+char* stringPoolReadVariable(const StringPool* sp, const char* varName) {
 	size_t nameLength;
-	char **strp;
-	char *value;
+	char** strp;
+	char* value;
 	int i;
 	
 	nameLength = strlen(varName);
@@ -181,5 +181,5 @@ char *stringPoolReadVariable(const StringPool *sp, const char *varName) {
 				return startOf(++value);
 		}
 	}
-	return NULL; // variable not found
+	return null; // variable not found
 }

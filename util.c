@@ -26,7 +26,7 @@ char digit[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
 #if (LOG_LEVEL > 0) || (DEBUG > 0)
 
-FILE *logFile;
+FILE* logFile;
 
 pthread_mutex_t logFileMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -36,7 +36,7 @@ int LogOpen(const int socket) {
 	#else
 	logFile = stdout;
 	#endif
-	if (logFile != NULL)
+	if (logFile != null)
 		Log(socket,
 			"Server started. Port: " SERVER_PORT_STR "."
 			#ifdef SYSTEM_USER
@@ -46,7 +46,7 @@ int LogOpen(const int socket) {
 			" Server root: " SERVER_ROOT "."
 			#endif
 			);
-	return logFile != NULL;
+	return logFile != null;
 }
 
 void LogClose(const int socket) {
@@ -62,7 +62,7 @@ void LogClose(const int socket) {
 	fclose(logFile);
 }
 
-void Log(const int socket, const char *format, ...) {
+void Log(const int socket, const char* format, ...) {
 	va_list ap;
 	struct timeval tv;
 	struct timezone tz;
@@ -70,7 +70,7 @@ void Log(const int socket, const char *format, ...) {
 
 	pthread_mutex_lock( &logFileMutex );
 
-	gettimeofday(&tv, NULL);
+	gettimeofday(&tv, null);
 	localtime_r(&tv.tv_sec, &tm);
 	fprintf(logFile, "%04d-%02d-%02d %02d:%02d:%02d.%06d  <%08d>  ", 
 		tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 
@@ -95,9 +95,9 @@ void Log(const int socket, const char *format, ...) {
 
 // mime type detection based on suffix is a light-weight alternative to file(1)
 
-const char *mimeType(const char *fileName) {
+const char* mimeType(const char* fileName) {
 
-	static const char *(assocNames[][2]) = {
+	static const char* (assocNames[][2]) = {
 
 /* the mime types for web content should always be present */
 
@@ -141,20 +141,20 @@ const char *mimeType(const char *fileName) {
 		{ "tar",   "application/x-tar" },
 		{ "zip",   "application/x-zip" },
 		
-/* the NULL string must be the last entry */
+/* the null string must be the last entry */
 
-		{ NULL,   NULL }
+		{ null,   null }
 	};
 
-	static const char *mimeDefault = "application/octet-stream";
+	static const char* mimeDefault = "application/octet-stream";
 
-	const char *((*anp)[2]) = NULL;
-	char *suffix;
+	const char* ((*anp)[2]) = null;
+	char* suffix;
 
 	suffix = strrchr(fileName, '.');
-	if (suffix != NULL) {
+	if (suffix != null) {
 		suffix++;
-		for (anp = assocNames; (*anp)[0] != NULL; anp++)
+		for (anp = assocNames; (*anp)[0] != null; anp++)
 			if (!strcmp((*anp)[0], suffix)) {
 				return (*anp)[1];
 			}
@@ -181,7 +181,7 @@ const char *mimeType(const char *fileName) {
 				#if DEBUG & 128
 				Log(0, "MT: child process execve \"%s -b --mime-type %s\"", EXT_FILE_CMD, fileName);
 				#endif
-				execl(EXT_FILE_CMD, EXT_FILE_CMD, "-b", "--mime-type", fileName, (char *) NULL); // should never return
+				execl(EXT_FILE_CMD, EXT_FILE_CMD, "-b", "--mime-type", fileName, null); // should never return
 				#if DEBUG & 128
 				Log(0, "MT: child process returned with errno %d", errno);
 				#endif
@@ -215,7 +215,7 @@ const char *mimeType(const char *fileName) {
 
 int hexDigit(const char c) {
 	static const char digits[] = "0123456789abcdef";
-	const char *cp;
+	const char* cp;
 
 	for (cp = digits; *cp != '\0'; cp++)
 		if (*cp == tolower(c))
@@ -223,10 +223,10 @@ int hexDigit(const char c) {
 	return -1;
 }
 
-enum ErrorState urlDecode(char *buffer) {
-	if (buffer == NULL)
+enum ErrorState urlDecode(char* buffer) {
+	if (buffer == null)
 		return ERROR_FALSE; // allowed
-	char *in, *out;
+	char* in, *out;
 	in = out = buffer;
 	for (; (*out = *in) != '\0'; in++, out++) {
 		if (*in == '%') {
@@ -244,8 +244,8 @@ enum ErrorState urlDecode(char *buffer) {
 	return ERROR_FALSE; // success
 }
 
-enum ErrorState fileNameEncode(const char *in, char *out, size_t outLength) {
-	if (in == NULL)
+enum ErrorState fileNameEncode(const char* in, char* out, size_t outLength) {
+	if (in == null)
 		return ERROR_FALSE; // allowed
 	for (; (*out = *in) != '\0'; in++, out ++, outLength--) {
 		if (outLength < 2)
@@ -266,9 +266,9 @@ enum ErrorState fileNameEncode(const char *in, char *out, size_t outLength) {
 
 #if defined(PUT_PATH) || (AUTO_INDEX == 1)
 
-int isValidDir(char *fileName) {
+int isValidDir(char* fileName) {
 	return
-		fileName != NULL
+		fileName != null
 			&&
 		(fileName[0] != '\0')
 			&&
@@ -282,8 +282,8 @@ int isValidDir(char *fileName) {
 
 #ifdef PUT_PATH
 
-int openFileForWriting(MemPool *fileNamePool, char *resource) {
-	char *token;
+int openFileForWriting(MemPool* fileNamePool, char* resource) {
+	char* token;
 	struct stat st;
 	int file;
 
@@ -292,13 +292,13 @@ int openFileForWriting(MemPool *fileNamePool, char *resource) {
 		#if DEBUG & 1024
 		Log(0, "OFFW: token=\"%s\" resource=\"%s\"", token, resource);
 		#endif
-		if (token == NULL)
+		if (token == null)
 			return ERROR_TRUE; // bad format
 		if (*token == '\0')
 			continue; // eat leading slash
 		if (memPoolExtendChar(fileNamePool, '/') || memPoolExtend(fileNamePool, token))
 			return ERROR_TRUE; // out of memory
-		if (resource == NULL || *resource == '\0') {
+		if (resource == null || *resource == '\0') {
 			#if DEBUG & 1024
 			Log(0, "OFFW: file=\"%s\"", fileNamePool->mem);
 			#endif
@@ -312,9 +312,9 @@ int openFileForWriting(MemPool *fileNamePool, char *resource) {
 	}
 }
 
-enum ErrorState deleteFileTree(MemPool *fileNamePool) {
+enum ErrorState deleteFileTree(MemPool* fileNamePool) {
 	struct stat st;
-	struct dirent *dp;
+	struct dirent* dp;
 	if (stat(fileNamePool->mem, &st))
 		return ERROR_FALSE; // file does not exist
 	if (S_ISDIR(st.st_mode)) { // directory must be empty
@@ -322,11 +322,11 @@ enum ErrorState deleteFileTree(MemPool *fileNamePool) {
 		if (fileNamePool->current > 1 && fileNamePool->mem[fileNamePool->current - 2] != '/')
 			if (memPoolExtendChar(fileNamePool, '/')) 
 				return ERROR_TRUE;
-		DIR *dir = opendir(fileNamePool->mem);
-		if (dir == NULL)
+		DIR* dir = opendir(fileNamePool->mem);
+		if (dir == null)
 			return ERROR_TRUE;
 		int savePosition = fileNamePool->current;
-		while ((dp = readdir(dir)) != NULL) {
+		while ((dp = readdir(dir)) != null) {
 			if (isValidDir(dp->d_name)) {
 				if (memPoolExtend(fileNamePool, dp->d_name) || deleteFileTree(fileNamePool)) {
 					//memPoolResetTo(fileNamePool, savePosition);
@@ -345,21 +345,21 @@ enum ErrorState deleteFileTree(MemPool *fileNamePool) {
 
 #if AUTO_INDEX == 1
 
-enum ErrorState fileWriteChar(FILE *file, const char c) {
+enum ErrorState fileWriteChar(FILE* file, const char c) {
 	return fputc(c, file) != c;
 }
 
-enum ErrorState fileWriteNumber(FILE *file, const unsigned num) {
+enum ErrorState fileWriteNumber(FILE* file, const unsigned num) {
 	return num < 10 ? fileWriteChar(file, digit[num]) : (fileWriteNumber(file, num / 10) || fileWriteChar(file, digit[num % 10]));
 }
 
-enum ErrorState fileWriteString(FILE *file, const char *str) {
+enum ErrorState fileWriteString(FILE* file, const char* str) {
 	int len = strlen(str);
 	return fwrite(str, 1, len, file) != len;
 }
 
-enum ErrorState fileWriteDirectory(FILE *file, MemPool *fileNamePool) {
-	struct dirent *dp;
+enum ErrorState fileWriteDirectory(FILE* file, MemPool* fileNamePool) {
+	struct dirent* dp;
 	int found = 0;
 
 	#if DEBUG & 1024
@@ -367,14 +367,14 @@ enum ErrorState fileWriteDirectory(FILE *file, MemPool *fileNamePool) {
 	#endif
 	// assumption: file name ends with '/'
 	int savePosition = fileNamePool->current;
-	DIR *dir = opendir(fileNamePool->mem);
-	if (dir == NULL)
+	DIR* dir = opendir(fileNamePool->mem);
+	if (dir == null)
 		return ERROR_TRUE;
 	if (fileWriteChar(file, '[')) {
 		closedir(dir);
 		return ERROR_TRUE;
 	}
-	while ((dp = readdir(dir)) != NULL) {
+	while ((dp = readdir(dir)) != null) {
 		if (isValidDir(dp->d_name)) {
 			struct stat st;
 			if (memPoolExtend(fileNamePool, dp->d_name) || stat(fileNamePool->mem, &st)) {
@@ -384,7 +384,7 @@ enum ErrorState fileWriteDirectory(FILE *file, MemPool *fileNamePool) {
 			}
 			memPoolResetTo(fileNamePool, savePosition);
 			unsigned fileSize = st.st_size;
-			const char *fileType = S_ISDIR(st.st_mode) ? "dir" : (S_ISREG(st.st_mode) ? mimeType(dp->d_name) : "unknown");
+			const char* fileType = S_ISDIR(st.st_mode) ? "dir" : (S_ISREG(st.st_mode) ? mimeType(dp->d_name) : "unknown");
 			if (found++ > 0 && fileWriteChar(file, ',')) {
 				closedir(dir);
 				return ERROR_TRUE;
@@ -412,26 +412,26 @@ enum ErrorState fileWriteDirectory(FILE *file, MemPool *fileNamePool) {
 
 #endif
 
-char *strToLower(char *string) {
-	char *cp;
+char* strToLower(char* string) {
+	char* cp;
 	
-	if (string != NULL)
+	if (string != null)
 		for (cp = string; *cp; cp++)
 			*cp = tolower(*cp);
 	return string;
 }
 
-char *strToUpper(char *string) {
-	char *cp;
+char* strToUpper(char* string) {
+	char* cp;
 	
-	if (string != NULL)
+	if (string != null)
 		for (cp = string; *cp; cp++)
 			*cp = toupper(*cp);
 	return string;
 }
 
-char *startOf(char *string) {
-	if (string != NULL)
+char* startOf(char* string) {
+	if (string != null)
 		while (*string != '\0' && !isgraph(*string))
 			++string;
 	return string;

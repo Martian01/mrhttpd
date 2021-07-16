@@ -47,7 +47,7 @@ enum HttpCodeIndex {
 };
 
 #ifdef PRIVATE_DIR
-const char *httpFile[] = {
+const char* httpFile[] = {
 	PRIVATE_DIR "/200.html",
 	PRIVATE_DIR "/201.html",
 	PRIVATE_DIR "/202.html",
@@ -67,7 +67,7 @@ const char *httpFile[] = {
 };
 #endif
 
-const char *httpCodeString[] = {
+const char* httpCodeString[] = {
 	"200 OK\r",
 	"201 Created\r",
 	"202 Accepted\r",
@@ -86,7 +86,7 @@ const char *httpCodeString[] = {
 	"503 Service Unavailable\r"
 };
 
-const char *connectionString[] = {
+const char* connectionString[] = {
 	"Connection: keep-alive\r",
 	"Connection: close\r"
 };
@@ -95,42 +95,42 @@ enum ConnectionState httpRequest(const int socket) {
 
 	enum ConnectionState connectionState = CONNECTION_CLOSE;
 
-	char *method; 
-	char *resource;
-	char *protocol = PROTOCOL_HTTP_1_1;
-	char *query; 
-	char *connection;
+	char* method; 
+	char* resource;
+	char* protocol = PROTOCOL_HTTP_1_1;
+	char* query; 
+	char* connection;
 	
 	int statusCode = HTTP_400;
 
 	struct stat st;
-	FILE *file = NULL;
+	FILE* file = null;
 	int fd = -1;
 
 	unsigned int contentLength;
-	const char *contentType;
+	const char* contentType;
 
 	char fileNameBuf[512];
 	MemPool fileNamePool = { sizeof(fileNameBuf), 0, fileNameBuf };
-	char *fileName = fileNameBuf;
+	char* fileName = fileNameBuf;
 
 	char streamBuf[HTTP_HEADER_LENGTH];
 	MemPool streamMemPool = { sizeof(streamBuf), 0, streamBuf };
 
 	char requestHeaderBuf[HTTP_HEADER_LENGTH];
 	MemPool requestHeaderMemPool = { sizeof(requestHeaderBuf), 0, requestHeaderBuf };
-	char *requestHeader[64];
+	char* requestHeader[64];
 	StringPool requestHeaderPool = { sizeof(requestHeader), 0, requestHeader, &requestHeaderMemPool };
 
 	char replyHeaderBuf[512];
 	MemPool replyHeaderMemPool = { sizeof(replyHeaderBuf), 0, replyHeaderBuf };
-	char *replyHeader[16];
+	char* replyHeader[16];
 	StringPool replyHeaderPool = { sizeof(replyHeader), 0, replyHeader, &replyHeaderMemPool };
 
 	#if LOG_LEVEL > 0 || defined(CGI_PATH)
 	struct sockaddr_in sa;
 	int addressLength = sizeof(struct sockaddr_in);
-	getpeername(socket, (struct sockaddr *)&sa, (socklen_t *) &addressLength);
+	getpeername(socket, (struct sockaddr*)&sa, (socklen_t*) &addressLength);
 	char client[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &sa.sin_addr, client, INET_ADDRSTRLEN);
 	int port = ntohs(sa.sin_port);
@@ -147,12 +147,12 @@ enum ConnectionState httpRequest(const int socket) {
 	}
 
 	#if DEBUG & 32
-	for (char **rh = requestHeader, i = requestHeaderPool.current; i > 0; rh++, i--)
+	for (char** rh = requestHeader, i = requestHeaderPool.current; i > 0; rh++, i--)
 		Log(socket, "request header: %s", *rh);
 	#endif
 
 	// Parse first header line
-	char *headerLine = requestHeader[0];
+	char* headerLine = requestHeader[0];
 	method = strsep(&headerLine, " ");
 	int httpMethod;
 	if (!strcmp(method, "GET"))
@@ -172,7 +172,7 @@ enum ConnectionState httpRequest(const int socket) {
 		statusCode = HTTP_501;
 		goto _sendError; // unknown method
 	}
-	if (headerLine == NULL) {
+	if (headerLine == null) {
 		#if LOG_LEVEL > 0
 		Log(socket, "%15s  400  Missing resource", client);
 		#endif
@@ -180,7 +180,7 @@ enum ConnectionState httpRequest(const int socket) {
 	}
 
 	resource = strsep(&headerLine, " ");
-	if (headerLine == NULL) {
+	if (headerLine == null) {
 		#if LOG_LEVEL > 0
 		Log(socket, "%15s  400  \"%s  %s\"", client, method, resource);
 		#endif
@@ -210,11 +210,11 @@ enum ConnectionState httpRequest(const int socket) {
 	connection = strToLower(stringPoolReadVariable(&requestHeaderPool, "Connection"));
 	if (strcmp(protocol, PROTOCOL_HTTP_1_1) == 0) {
 		connectionState = CONNECTION_KEEPALIVE;
-		if (connection != NULL && strcmp(connection, "close") == 0)
+		if (connection != null && strcmp(connection, "close") == 0)
 			connectionState = CONNECTION_CLOSE;
 	} else if (strcmp(protocol, PROTOCOL_HTTP_1_0) == 0) {
 		connectionState = CONNECTION_CLOSE;
-		if (connection != NULL && strcmp(connection, "keep-alive") == 0)
+		if (connection != null && strcmp(connection, "keep-alive") == 0)
 			connectionState = CONNECTION_KEEPALIVE;
 	} else {
 		statusCode = HTTP_501;
@@ -233,7 +233,7 @@ enum ConnectionState httpRequest(const int socket) {
 	char newResource[512];
 	MemPool newResourceMemPool = { sizeof(newResource), 0, newResource };
 	
-	if (query != NULL)
+	if (query != null)
 		if (*query != '\0')
 			if (strncmp(resource, QUERY_HACK, strlen(QUERY_HACK)) == 0) {
 				if ( 
@@ -249,8 +249,8 @@ enum ConnectionState httpRequest(const int socket) {
 
 	int sendWwwAuthenticate = 0;
 	if (authHeader && (authMethods & (1 << httpMethod))) {
-		char *requestAuthHeader = stringPoolReadVariable(&requestHeaderPool, "Authorization");
-		if (requestAuthHeader == NULL) {
+		char* requestAuthHeader = stringPoolReadVariable(&requestHeaderPool, "Authorization");
+		if (requestAuthHeader == null) {
 			sendWwwAuthenticate = 1;
 			statusCode = HTTP_401;
 			goto _sendError;
@@ -270,7 +270,7 @@ enum ConnectionState httpRequest(const int socket) {
 	}
 
 	#ifdef CGI_PATH
-	char *env[96];
+	char* env[96];
 	StringPool envPool = { sizeof(env), 0, env, &streamMemPool };
 
 	if (!strncmp(resource, CGI_PATH, strlen(CGI_PATH))) { // presence of CGI path prefix indicates CGI script
@@ -278,27 +278,27 @@ enum ConnectionState httpRequest(const int socket) {
 			goto _sendError500;
 		if (stat(fileName, &st)) {
 			#if LOG_LEVEL > 2
-			Log(socket, "%15s  404  \"CGI %s %s\"", client, fileName, query == NULL ? "" : query);
+			Log(socket, "%15s  404  \"CGI %s %s\"", client, fileName, query == null ? "" : query);
 			#endif
 			statusCode = HTTP_404;
 			goto _sendError;
 		}
 		if (!S_ISREG(st.st_mode)) {
 			#if LOG_LEVEL > 2
-			Log(socket, "%15s  403  \"CGI %s %s\"", client, fileName, query == NULL ? "" : query);
+			Log(socket, "%15s  403  \"CGI %s %s\"", client, fileName, query == null ? "" : query);
 			#endif
 			statusCode = HTTP_403;
 			goto _sendError;
 		}
 		if (access(fileName, X_OK)) {
 			#if LOG_LEVEL > 2
-			Log(socket, "%15s  503  \"CGI %s %s\"", client, fileName, query == NULL ? "" : query);
+			Log(socket, "%15s  503  \"CGI %s %s\"", client, fileName, query == null ? "" : query);
 			#endif
 			statusCode = HTTP_503;
 			goto _sendError;
 		}
 		#if LOG_LEVEL > 3
-		Log(socket, "%15s  000  \"CGI %s %s\"", client, fileName, query == NULL ? "" : query);
+		Log(socket, "%15s  000  \"CGI %s %s\"", client, fileName, query == null ? "" : query);
 		#endif
 
 		// set up environment of cgi program
@@ -311,7 +311,7 @@ enum ConnectionState httpRequest(const int socket) {
 			stringPoolAddVariable(&envPool, "SERVER_PROTOCOL", protocol) ||
 			stringPoolAddVariable(&envPool, "REQUEST_METHOD", method) ||
 			stringPoolAddVariable(&envPool, "SCRIPT_FILENAME", fileName) ||
-			stringPoolAddVariable(&envPool, "QUERY_STRING", (query == NULL) ? "" : query) ||
+			stringPoolAddVariable(&envPool, "QUERY_STRING", (query == null) ? "" : query) ||
 			stringPoolAddVariable(&envPool, "REMOTE_ADDR", client) ||
 			stringPoolAddVariableNumber(&envPool, "REMOTE_PORT", port) ||
 			stringPoolAddVariables(&envPool, &requestHeaderPool, "HTTP_") ||
@@ -347,7 +347,7 @@ enum ConnectionState httpRequest(const int socket) {
 					Log(socket, "CGI Fork Child: Executing %s", fileName);
 					#endif
 					chdir(CGI_DIR);
-					execve(fileName, NULL, env); // should never return
+					execve(fileName, null, env); // should never return
 				}
 				#if DEBUG & 512
 				Log(socket, "CGI Fork Child: Failed to launch %s", fileName);
@@ -367,7 +367,7 @@ enum ConnectionState httpRequest(const int socket) {
 		#if DEBUG & 256
 		Log(socket, "CGI Fork Parent: waiting for child %d", childPid);
 		#endif
-		waitpid(childPid, NULL, 0);
+		waitpid(childPid, null, 0);
 		#if DEBUG & 256
 		Log(socket, "CGI Fork Parent: wait finished for child %d", childPid);
 		#endif
@@ -399,8 +399,8 @@ enum ConnectionState httpRequest(const int socket) {
 			statusCode = HTTP_200;
 			goto _sendEmptyResponse;
 		} else { // httpMethod == HTTP_PUT
-			char *headerContentLength = stringPoolReadVariable(&requestHeaderPool, "Content-Length");
-			contentLength = headerContentLength == NULL ? 0 : atoi(headerContentLength);
+			char* headerContentLength = stringPoolReadVariable(&requestHeaderPool, "Content-Length");
+			contentLength = headerContentLength == null ? 0 : atoi(headerContentLength);
 			// Simple Body Upload
 			int uploadFile = openFileForWriting(&fileNamePool, resource);
 			if (uploadFile < 0) {
@@ -476,7 +476,7 @@ enum ConnectionState httpRequest(const int socket) {
 		#if AUTO_INDEX == 1
 		// generate auto index if default index was unsuccessful
 		file = tmpfile();
-		if (file == NULL) {
+		if (file == null) {
 			#if LOG_LEVEL > 2
 			Log(socket, "%15s  500  \"AUTODIR no tmpfile\"", client);
 			#endif
@@ -590,7 +590,7 @@ _sendError:
 	connectionState = CONNECTION_CLOSE;
 
 	#ifdef PRIVATE_DIR
-	fileName = (char *)(httpFile[statusCode]);
+	fileName = (char*) (httpFile[statusCode]);
 	contentType = "text/html";
 	if (stat(fileName, &st) < 0) {
 		#if LOG_LEVEL > 0
@@ -638,7 +638,7 @@ _sendEmptyResponse:
 
 _return:
 
-	if (file != NULL) {
+	if (file != null) {
 		rc = fclose(file);
 		#if LOG_LEVEL > 3
 		Log(socket, "%15s  000  \"FCLOSE %s rc=%d, errno=%d\"", client, fileName, rc, errno);

@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 int masterFd;
 
-char *authHeader;
+char* authHeader;
 int authMethods;
 
 int main(void) {
@@ -42,14 +42,14 @@ int main(void) {
 
 	// Allow re-use of port & address
 	rc = 1;
-	setsockopt(masterFd, SOL_SOCKET, SO_REUSEADDR, (void *) &rc, sizeof(rc));
+	setsockopt(masterFd, SOL_SOCKET, SO_REUSEADDR, (void*) &rc, sizeof(rc));
 
 	localAddress.sin_family = AF_INET;
 	localAddress.sin_port = htons(SERVER_PORT);
 	localAddress.sin_addr.s_addr = INADDR_ANY;
 	memset(&(localAddress.sin_zero), 0, sizeof(localAddress.sin_zero));
 
-	if (bind(masterFd, (struct sockaddr *) &localAddress, sizeof(struct sockaddr)) < 0) {
+	if (bind(masterFd, (struct sockaddr* ) &localAddress, sizeof(struct sockaddr)) < 0) {
 		puts("Could not bind to port, exiting");
 		exit(1);
 	}
@@ -71,7 +71,7 @@ int main(void) {
 	#ifdef SYSTEM_USER
 	// Save the user data before the chroot call
 	pw = getpwnam(SYSTEM_USER);
-	if (pw == NULL) {
+	if (pw == null) {
 		puts("Could not find system user, exiting");
 		exit(1);
 	}
@@ -122,15 +122,15 @@ int main(void) {
 	#endif
 
 	// Set global authorisation parameters
-	char *envString = getenv("AUTH_METHODS");
+	char* envString = getenv("AUTH_METHODS");
 	#ifdef AUTH_METHODS
-	authMethods = envString == NULL ? AUTH_METHODS : atoi(envString);
+	authMethods = envString == null ? AUTH_METHODS : atoi(envString);
 	#else
-	authMethods = envString == NULL ? -1 : atoi(envString);
+	authMethods = envString == null ? -1 : atoi(envString);
 	#endif
 	#ifdef AUTH_HEADER
 	envString = getenv("AUTH_HEADER");
-	authHeader = envString == NULL ? AUTH_HEADER : envString;
+	authHeader = envString == null ? AUTH_HEADER : envString;
 	#else
 	authHeader = getenv("AUTH_HEADER");
 	#endif
@@ -140,14 +140,14 @@ int main(void) {
 		#if DEBUG & 4
 		Log(masterFd, "Accept");
 		#endif
-		newFd = accept(masterFd, NULL, NULL);
+		newFd = accept(masterFd, null, null);
 		#if DEBUG & 4
 		Log(masterFd, "New connection for socket %d", newFd);
 		#endif
 		if (newFd >= 0) {
 			// Spawn thread to handle new socket
 			// The cast is a non-portable kludge to implement call-by-value
-			if (pthread_create(&threadId, NULL, serverThread, (void *) (long) newFd)) {
+			if (pthread_create(&threadId, null, serverThread, (void*) (long) newFd)) {
 				// Creation of thread failed - 
 				// most likely due to thread overload.
 				//
@@ -167,7 +167,7 @@ int main(void) {
 	}
 }
 
-void *serverThread(void *arg) {
+void*serverThread(void*arg) {
 	// Detach thread - it will terminate on its own
 	pthread_detach(pthread_self());
 
@@ -190,12 +190,12 @@ void *serverThread(void *arg) {
 	Log(socket, "Worker thread finished for socket %d", socket);
 	#endif
 	
-	return NULL;
+	return null;
 }
 
 void reaper() {
 	// Clean up zombies
-	while(waitpid(-1, NULL, WNOHANG) > 0)
+	while(waitpid(-1, null, WNOHANG) > 0)
 		;
 }
 

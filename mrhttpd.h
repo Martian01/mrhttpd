@@ -70,23 +70,25 @@ enum ConnectionState { CONNECTION_KEEPALIVE, CONNECTION_CLOSE };
 typedef struct {
 	int size;
 	int current;
-	char *mem;
+	char* mem;
 } MemPool;
 
 typedef struct {
 	int size;
 	int current;
-	char **strings;
-	MemPool *mp;
+	char** strings;
+	MemPool* mp;
 } StringPool;
+
+#define null ((void*) 0L)
 
 // main
 
-extern char *authHeader;
+extern char* authHeader;
 extern int authMethods;
 
 int main(void);
-void *serverThread(void *);
+void*serverThread(void*);
 void reaper();
 void shutDownServer();
 void sigTermHandler(const int);
@@ -101,49 +103,49 @@ enum ConnectionState httpRequest(const int);
 // io
 
 void setTimeout(const int);
-int parseHeader(const int, MemPool *, StringPool *);
-ssize_t sendMemPool(const int, const MemPool *);
-ssize_t sendBuffer(const int, const char *, const ssize_t);
+int parseHeader(const int, MemPool*, StringPool*);
+ssize_t sendMemPool(const int, const MemPool*);
+ssize_t sendBuffer(const int, const char* , const ssize_t);
 ssize_t sendFile(const int, const int, const ssize_t);
 ssize_t pipeToSocket(const int, const int, const ssize_t);
 ssize_t pipeToFile(const int, const int, const ssize_t);
 
 // mem
 
-void memPoolReset(MemPool *);
-void memPoolResetTo(MemPool *, int);
-enum ErrorState memPoolAdd(MemPool *, const char *);
-enum ErrorState memPoolExtend(MemPool *, const char *);
-enum ErrorState memPoolExtendChar(MemPool *, const char);
-enum ErrorState memPoolExtendNumber(MemPool *, const unsigned);
-void memPoolReplace(MemPool *, const char, const char);
-int memPoolLineBreak(const MemPool *, const int);
-void stringPoolReset(StringPool *);
-enum ErrorState stringPoolAdd(StringPool *, const char *);
-enum ErrorState stringPoolAddVariable(StringPool *, const char *, const char *);
-enum ErrorState stringPoolAddVariableNumber(StringPool *, const char *, const unsigned);
-enum ErrorState stringPoolAddVariables(StringPool *, const StringPool *, const char*);
-char *stringPoolReadVariable(const StringPool *, const char *);
+void memPoolReset(MemPool*);
+void memPoolResetTo(MemPool*, int);
+enum ErrorState memPoolAdd(MemPool*, const char*);
+enum ErrorState memPoolExtend(MemPool*, const char*);
+enum ErrorState memPoolExtendChar(MemPool*, const char);
+enum ErrorState memPoolExtendNumber(MemPool*, const unsigned);
+void memPoolReplace(MemPool*, const char, const char);
+int memPoolLineBreak(const MemPool*, const int);
+void stringPoolReset(StringPool*);
+enum ErrorState stringPoolAdd(StringPool*, const char*);
+enum ErrorState stringPoolAddVariable(StringPool*, const char*, const char*);
+enum ErrorState stringPoolAddVariableNumber(StringPool*, const char*, const unsigned);
+enum ErrorState stringPoolAddVariables(StringPool*, const StringPool*, const char*);
+char* stringPoolReadVariable(const StringPool*, const char*);
 
 // util
 
 extern char digit[];
-extern FILE *logFile;
+extern FILE* logFile;
 int LogOpen(const int);
 void LogClose(const int);
-void Log(const int, const char *, ...);
-const char *mimeType(const char *);
+void Log(const int, const char*, ...);
+const char* mimeType(const char*);
 int hexDigit(const char);
-enum ErrorState urlDecode(char *);
-enum ErrorState fileNameEncode(const char *, char *, size_t);
-enum ErrorState fileWriteChar(FILE *, const char);
-enum ErrorState fileWriteNumber(FILE *, const unsigned);
-enum ErrorState fileWriteString(FILE *, const char *);
-enum ErrorState fileWriteDirectory(FILE *, MemPool *);
-enum ErrorState deleteFileTree(MemPool *);
-int openFileForWriting(MemPool *, char *);
-char *strToLower(char *);
-char *strToUpper(char *);
-char *startOf(char *);
+enum ErrorState urlDecode(char*);
+enum ErrorState fileNameEncode(const char*, char*, size_t);
+enum ErrorState fileWriteChar(FILE*, const char);
+enum ErrorState fileWriteNumber(FILE*, const unsigned);
+enum ErrorState fileWriteString(FILE*, const char*);
+enum ErrorState fileWriteDirectory(FILE* , MemPool*);
+enum ErrorState deleteFileTree(MemPool*);
+int openFileForWriting(MemPool*, char*);
+char* strToLower(char*);
+char* strToUpper(char*);
+char* startOf(char*);
 
 #endif
