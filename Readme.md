@@ -295,7 +295,7 @@ A Dockerfile is provided that can be used to build Docker images. On Docker Hub 
 
 If you want to display your own error pages, you can mount a directory on `/opt/mrhttpd/private`.
 
-There is an alternative Docker image `dockahdockah/mrhttpd-put` built with the configuration file `mrhttpd-docker-put.conf`. It is designed to accept file uploads and file deletions, and provides JSON directory listings. It can be used as a simple HTTP-based file server.
+There is an alternative Docker image `dockahdockah/mrhttpd-fs` built with the configuration file `mrhttpd-docker-fs.conf`. It is designed to accept file uploads and file deletions, and provides JSON directory listings. It can be used as a simple HTTP-based file server. The file access can be restricted via environment variables.
 
 ## References
 

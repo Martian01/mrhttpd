@@ -13,7 +13,6 @@ SUFFIX=:latest
 if [ -f mrhttpd.h ] ; then
 
 	docker build -f docker/Dockerfile -t ${PREFIX}mrhttpd${SUFFIX} .
-	docker build -f docker/Dockerfile-put -t ${PREFIX}mrhttpd-put${SUFFIX} .
 	docker build -f docker/Dockerfile-fs -t ${PREFIX}mrhttpd-fs${SUFFIX} .
 
 	echo
@@ -23,7 +22,6 @@ if [ -f mrhttpd.h ] ; then
 	echo
 
 	docker push ${PREFIX}mrhttpd${SUFFIX}
-	docker push ${PREFIX}mrhttpd-put${SUFFIX}
 	docker push ${PREFIX}mrhttpd-fs${SUFFIX}
 
 	echo
