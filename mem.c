@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.7.1
+mrhttpd v2.7.2
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -167,19 +167,22 @@ enum ErrorState stringPoolAddVariables(StringPool* sp, const StringPool* var, co
 
 }
 
-char* stringPoolReadVariable(const StringPool* sp, const char* varName) {
-	size_t nameLength;
+char* stringPoolReadHttpHeader(const StringPool* sp, const char* headerName) {
 	char** strp;
-	char* value;
 	int i;
 	
-	nameLength = strlen(varName);
 	for (strp = sp->strings, i = sp->current; i > 0; strp++, i--) {
-		if (strncmp(*strp, varName, nameLength) == 0) {
-			value = *strp + nameLength;
-			if (*value == ':')
+		char* value = removePrefix(headerName, *strp);
+		if (value != null && *value == ':')
 				return startOf(++value);
-		}
 	}
 	return null; // variable not found
+}
+
+char* removePrefix(const char* prefix, char* string) {
+	while (*prefix) {
+		if (*prefix++ != tolower(*string++)) // HTTP header names are case-insensitive according to RFC 2616
+			return null; // string does not start with prefix
+	}
+	return string; // remainder
 }

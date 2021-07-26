@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.7.1
+mrhttpd v2.7.2
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -118,7 +118,7 @@ _nextHeaderLine:
 		goto _nextHeaderLine; // find next line in buffer
 	}
 	if (cursor != delim) { // line is not empty
-		if (stringPoolAdd(headerPool, buffer->mem + cursor)) { // add string to header pool
+		if (stringPoolAdd(headerPool, buffer->mem + cursor)) {
 			if (headerPool->current == 0) { // request line
 				#if DEBUG & 32
 				Log(socket, "parseHeader: abort at index: %d", cursor);

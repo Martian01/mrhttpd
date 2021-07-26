@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.7.1
+mrhttpd v2.7.2
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -58,7 +58,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #define SERVER_NAME       "mrhttpd"
-#define SERVER_SOFTWARE   "mrhttpd/2.7.1"
+#define SERVER_SOFTWARE   "mrhttpd/2.7.2"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"
@@ -82,7 +82,7 @@ typedef struct {
 
 #define null ((void*) 0L)
 
-// main
+// main.c
 
 extern char* authHeader;
 extern int authMethods;
@@ -96,11 +96,11 @@ void sigIntHandler(const int);
 void sigHupHandler(const int);
 void sigChldHandler(const int);
 
-// protocol
+// protocol.c
 
 enum ConnectionState httpRequest(const int);
 
-// io
+// io.c
 
 void setTimeout(const int);
 int parseHeader(const int, MemPool*, StringPool*);
@@ -110,7 +110,7 @@ ssize_t sendFile(const int, const int, const ssize_t);
 ssize_t pipeToSocket(const int, const int, const ssize_t);
 ssize_t pipeToFile(const int, const int, const ssize_t);
 
-// mem
+// mem.c
 
 void memPoolReset(MemPool*);
 void memPoolResetTo(MemPool*, int);
@@ -125,12 +125,14 @@ enum ErrorState stringPoolAdd(StringPool*, const char*);
 enum ErrorState stringPoolAddVariable(StringPool*, const char*, const char*);
 enum ErrorState stringPoolAddVariableNumber(StringPool*, const char*, const unsigned);
 enum ErrorState stringPoolAddVariables(StringPool*, const StringPool*, const char*);
-char* stringPoolReadVariable(const StringPool*, const char*);
+char* stringPoolReadHttpHeader(const StringPool*, const char*);
+char* removePrefix(const char*, char*);
 
-// util
+// util.c
 
 extern char digit[];
 extern FILE* logFile;
+
 int LogOpen(const int);
 void LogClose(const int);
 void Log(const int, const char*, ...);

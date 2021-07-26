@@ -177,3 +177,9 @@ mrhttpd v2.7.1
 released 2021-07-16
 Functional release
 Basic Auth
+
+mrhttpd v2.7.2
+==============
+released 2021-07-26
+Maintenance release
+Bug fix: HTTP header names are case-insensitive

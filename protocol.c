@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.7.1
+mrhttpd v2.7.2
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -207,7 +207,7 @@ enum ConnectionState httpRequest(const int socket) {
 	Log(socket, "%15s  OK   \"%s %s %s\"", client, method, resource, protocol);
 	#endif
 
-	connection = strToLower(stringPoolReadVariable(&requestHeaderPool, "Connection"));
+	connection = strToLower(stringPoolReadHttpHeader(&requestHeaderPool, "connection")); // header name in lower case
 	if (strcmp(protocol, PROTOCOL_HTTP_1_1) == 0) {
 		connectionState = CONNECTION_KEEPALIVE;
 		if (connection != null && strcmp(connection, "close") == 0)
@@ -249,13 +249,23 @@ enum ConnectionState httpRequest(const int socket) {
 
 	int sendWwwAuthenticate = 0;
 	if (authHeader && (authMethods & (1 << httpMethod))) {
-		char* requestAuthHeader = stringPoolReadVariable(&requestHeaderPool, "Authorization");
+		char* requestAuthHeader = stringPoolReadHttpHeader(&requestHeaderPool, "authorization"); // header name in lower case
 		if (requestAuthHeader == null) {
+			#if LOG_LEVEL > 0
+			Log(socket, "%15s  401  \"AUTH header missing\"", client);
+			#endif
 			sendWwwAuthenticate = 1;
 			statusCode = HTTP_401;
 			goto _sendError;
 		}
 		if (strcmp(requestAuthHeader, authHeader)) {
+			#if LOG_LEVEL > 0
+			#if DEBUG & 32
+			Log(socket, "%15s  401  \"AUTH wrong credentials: %s\"", client, requestAuthHeader);
+			#else
+			Log(socket, "%15s  401  \"AUTH wrong credentials\"", client);
+			#endif
+			#endif
 			statusCode = HTTP_401;
 			goto _sendError;
 		}
@@ -399,7 +409,7 @@ enum ConnectionState httpRequest(const int socket) {
 			statusCode = HTTP_200;
 			goto _sendEmptyResponse;
 		} else { // httpMethod == HTTP_PUT
-			char* headerContentLength = stringPoolReadVariable(&requestHeaderPool, "Content-Length");
+			char* headerContentLength = stringPoolReadHttpHeader(&requestHeaderPool, "content-length"); // header name in lower case
 			contentLength = headerContentLength == null ? 0 : atoi(headerContentLength);
 			// Simple Body Upload
 			int uploadFile = openFileForWriting(&fileNamePool, resource);

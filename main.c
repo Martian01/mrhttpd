@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.7.1
+mrhttpd v2.7.2
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -33,6 +33,25 @@ int main(void) {
 	struct sockaddr_in localAddress;
 	struct passwd *pw;
 	pthread_t threadId;
+
+	// Set global authorisation parameters
+	char* envString = getenv("AUTH_METHODS");
+	#ifdef AUTH_METHODS
+	authMethods = envString == null ? AUTH_METHODS : atoi(envString);
+	#else
+	authMethods = envString == null ? -1 : atoi(envString);
+	#endif
+	#ifdef AUTH_HEADER
+	envString = getenv("AUTH_HEADER");
+	authHeader = envString == null ? AUTH_HEADER : envString;
+	#else
+	authHeader = getenv("AUTH_HEADER");
+	#endif
+
+	#if DEBUG & 32
+	fprintf(stdout, "Authorisation header:  \"%s\"\n", authHeader);
+	fprintf(stdout, "Authorisation methods: %d\n", authMethods);
+	#endif
 
 	// Obtain master listen socket
 	if ((masterFd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -121,20 +140,6 @@ int main(void) {
 	setuid(pw->pw_uid);
 	#endif
 
-	// Set global authorisation parameters
-	char* envString = getenv("AUTH_METHODS");
-	#ifdef AUTH_METHODS
-	authMethods = envString == null ? AUTH_METHODS : atoi(envString);
-	#else
-	authMethods = envString == null ? -1 : atoi(envString);
-	#endif
-	#ifdef AUTH_HEADER
-	envString = getenv("AUTH_HEADER");
-	authHeader = envString == null ? AUTH_HEADER : envString;
-	#else
-	authHeader = getenv("AUTH_HEADER");
-	#endif
-
 	// Server loop - exit only via signal handler
 	for (;;) {
 		#if DEBUG & 4
@@ -167,7 +172,7 @@ int main(void) {
 	}
 }
 
-void*serverThread(void*arg) {
+void* serverThread(void* arg) {
 	// Detach thread - it will terminate on its own
 	pthread_detach(pthread_self());
 
