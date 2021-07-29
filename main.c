@@ -39,7 +39,7 @@ int main(void) {
 	#ifdef AUTH_METHODS
 	authMethods = envString == null ? AUTH_METHODS : atoi(envString);
 	#else
-	authMethods = envString == null ? 0 : atoi(envString);
+	authMethods = envString == null ? -1 : atoi(envString);
 	#endif
 	#ifdef AUTH_HEADER
 	envString = getenv("AUTH_HEADER");
