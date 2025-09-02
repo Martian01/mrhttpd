@@ -1,19 +1,18 @@
 #
 # Build stage
 #
-FROM alpine:3 AS build
+FROM docker.io/library/alpine:3 AS build
 RUN apk add --update --no-cache bash make gcc musl-dev 
 
-COPY * /tmp/build/
-COPY html/* /tmp/build/html/
-COPY docker/mrhttpd-docker-all.conf /tmp/build/mrhttpd.conf
-RUN cd /tmp/build && make install
+COPY . /tmp/build
+COPY container/mrhttpd-container.conf /tmp/build/mrhttpd.conf
+RUN cd /tmp/build && make clean && make && sh install
 
 
 #
 # Package stage
 #
-FROM alpine:3
+FROM docker.io/library/alpine:3
 COPY --from=build /usr/local/bin/mrhttpd /usr/local/bin/
 COPY --from=build /opt/mrhttpd /opt/mrhttpd/
 ENTRYPOINT ["/usr/local/bin/mrhttpd"]

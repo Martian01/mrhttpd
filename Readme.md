@@ -18,11 +18,11 @@ Before we get into more detail, here is the quick installation guide for the imp
 
 4. as root: `make install`
 
-NB: you can skip step 2 and 3 if you feel lucky
+NB: step 2 and 3 are optional
 
-## Quick Docker Installation Guide
+## Quick Docker or Podman Installation Guide
 
-	docker run -d -p 8080:8080 -v <your directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
+	container/podman run -d -p 8080:8080 -v <absolute directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
 
 ## Credits
 
@@ -191,7 +191,7 @@ NB: You need to be root for the latter. As an experienced user you may feel safe
 
 Mrhttpd is always started without parameters. If it has been configured to detach from the foreground process (option DETACH), it will send itself into the background and the foreground process will exit immediately. In either case you can do a test run from a local web browser by pointing it towards http://localhost:8080/ (or whatever host name, port and resource is appropriate in your case).
 
-Mrhttpd will not read any configuration file at runtime. All parameters have been compiled into the binary. For that reason mrhttpd will accept a SIGHUP signal but it will not do anything.
+Mrhttpd will not read any configuration file at runtime. All parameters have been compiled into the binary. For that reason mrhttpd will accept a SIGHUP signal but it will not do anything. (NB: the SIGHUP signal is traditionally used to make servers re-read their configuration.)
 
 Mrhttpd can be stopped by sending it the SIGINT or the SIGTERM signal, i.e. you can say any of the following:
 
@@ -200,7 +200,7 @@ Mrhttpd can be stopped by sending it the SIGINT or the SIGTERM signal, i.e. you 
 	killall -2 mrhttpd
 	killall -15 mrhttpd
 
-After receiving those signals, mrhttpd will release the socket and wait 5 seconds for threads and child processes to finish. So you can start another server listening on the same port straight away. Please avoid sending a SIGKILL signal unless there is a good reason.
+After receiving those signals, mrhttpd will release the socket and wait 5 seconds for threads and child processes to finish. So you can start another server listening on the same port straight away. As a general rule for stopping servers, please avoid sending a SIGKILL signal unless there is a good reason. When there is a good reason, do not hesitate to send a SIGKILL signal.
 
 A typical control script called rc.httpd is provided with mrhttpd. If you want to use it in a standard location like /etc/rc.d/ you need to copy it manually.
 
@@ -287,15 +287,21 @@ The other stunning fact proven by these figures is the significant impact of the
 
 It is noticeable that a fully threaded design like mrhttpd benefits particularly well from the CK patch, whereas the event-driven design of Lighttpd often seems to perform slightly better under the vanilla kernel.
 
-## Docker
+## Docker or Podman
 
-A Dockerfile is provided that can be used to build Docker images. On Docker Hub there is a pre built-image available that has been built using the configuration file `mrhttpd-docker.conf` from the repository. You can employ that Docker image via
+Container files are provided in the directory `container`. They can be used to build container images with docker or podman.
 
-	docker run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
+Pre-built images are available on Docker Hub. For instance, you can start a web server via
 
-If you want to display your own error pages, you can mount a directory on `/opt/mrhttpd/private`.
+	docker/podman run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
 
-There is an alternative Docker image `dockahdockah/mrhttpd-fs` built with the configuration file `mrhttpd-docker-fs.conf`. It is designed to accept file uploads and file deletions, and provides JSON directory listings. It can be used as a simple HTTP-based file server. The file access can be restricted via environment variables.
+If you want to display your own error pages, you can mount a volume on `/opt/mrhttpd/private`. All local directories must be specified as absolute paths.
+
+If you want to start a file server that allows file uploads, file deletions and JSON directory listings you can use a different image:
+
+	docker/podman run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd-fs
+
+The file access can be restricted via environment variables according to the mechanisms described in this document.
 
 ## References
 

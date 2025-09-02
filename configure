@@ -52,6 +52,8 @@ if [ -n "$WARNING" ]; then
   echo
 fi
 
+cd src
+
 rm config.h &>/dev/null
 
 cat > config.h << EOF
@@ -138,6 +140,8 @@ if [ -n "$DEBUG" ]; then
   echo '#define DEBUG               '$DEBUG >>config.h
 fi
 echo >>config.h
+
+cd ..
 
 echo "Configuration complete."
 echo

@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# This scripts builds Container images for the purpose of testing
+#
+# mrhttpd v2.7.2
+# Copyright c 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
+
+set -e
+
+#BINARY=docker
+BINARY=podman
+
+PREFIX=test/
+SUFFIX=:test
+
+if [ -d container ] ; then
+
+	${BINARY} build -f container/Containerfile -t ${PREFIX}mrhttpd${SUFFIX} .
+	${BINARY} build -f container/Containerfile-fs -t ${PREFIX}mrhttpd-fs${SUFFIX} .
+	${BINARY} build -f container/Containerfile-all -t ${PREFIX}mrhttpd-all${SUFFIX} .
+
+	echo
+	echo "------------"
+	echo "Test Success"
+	echo "------------"
+	echo
+
+else
+	echo "Wrong directory. Nothing done."
+fi

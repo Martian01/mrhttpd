@@ -4,10 +4,9 @@
 FROM alpine:3 AS build
 RUN apk add --update --no-cache bash make gcc musl-dev 
 
-COPY * /tmp/build/
-COPY html/* /tmp/build/html/
-COPY docker/mrhttpd-docker-fs.conf /tmp/build/mrhttpd.conf
-RUN cd /tmp/build && make install
+COPY . /tmp/build
+COPY container/mrhttpd-container.conf /tmp/build/mrhttpd.conf
+RUN cd /tmp/build/src && make clean && make && cd .. && sh install
 
 
 #

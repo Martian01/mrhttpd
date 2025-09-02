@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# This scripts builds and pushes Container images
+#
+# mrhttpd v2.7.2
+# Copyright c 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
+
+set -e
+
+#BINARY=docker
+BINARY=podman
+
+PREFIX=dockahdockah/
+SUFFIX=:latest
+
+if [ -d container ] ; then
+
+	#${BINARY} build -f container/Containerfile -t ${PREFIX}mrhttpd${SUFFIX} .
+	#${BINARY} build -f container/Containerfile-fs -t ${PREFIX}mrhttpd-fs${SUFFIX} .
+
+	${BINARY} build -f container/Containerfile -t mrhttpd .
+	${BINARY} build -f container/Containerfile-fs -t mrhttpd-fs .
+
+	echo
+	echo "-------------"
+	echo "Build Success"
+	echo "-------------"
+	echo
+
+	#${BINARY} push ${PREFIX}mrhttpd${SUFFIX}
+	#${BINARY} push ${PREFIX}mrhttpd-fs${SUFFIX}
+
+	#echo
+	#echo "--------------"
+	#echo "Upload Success"
+	#echo "--------------"
+	#echo
+
+else
+	echo "Wrong directory. Nothing done."
+fi

@@ -22,7 +22,7 @@ if [ -n "$ERROR" ] ; then
   exit 1
 fi
 
-cp -f mrhttpd $BIN_DIR/
+cp -f src/mrhttpd $BIN_DIR/
 
 if [ -n "$PRIVATE_DIR" ] ; then
   mkdir -p $SERVER_ROOT$PRIVATE_DIR
