@@ -3,13 +3,11 @@ mrhttpd v1.0
 released 2007-02-11
 Initial public release of mrhttpd
 
-
 mrhttpd v1.0.1
 ==============
 released 2007-03-15
 Maintenance release
 Ignore SIGPIPE signal which can be the cause of spurious termination
-
 
 mrhttpd v1.0.3
 ==============
@@ -18,20 +16,17 @@ Maintenance release
 Bug fix for spurious incomplete file transmission
 Added support for URL encoding
 
-
 mrhttpd v1.0.4
 ==============
 released 2007-06-16
 Maintenance release
 Minor and cosmetic changes
 
-
 mrhttpd v1.0.5
 ==============
 released 2008-07-28
 Maintenance release
 Bug fix for spurious incomplete transmission of large CGI output
-
 
 mrhttpd v1.0.6
 ==============
@@ -183,3 +178,9 @@ mrhttpd v2.7.2
 released 2021-07-26
 Maintenance release
 Bug fix: HTTP header names are case-insensitive
+
+mrhttpd v2.8.0
+==============
+released 2025-09-06
+Functional release
+Automatic directory listings in XML & HTML format

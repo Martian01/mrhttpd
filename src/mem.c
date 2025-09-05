@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.7.2
+mrhttpd v2.8.0
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -43,50 +43,54 @@ void memPoolResetTo(MemPool* mp, int savePosition) {
 		mp->mem[savePosition - 1] = '\0';
 }
 
-enum ErrorState memPoolAdd(MemPool* mp, const char* string) {
+int memPoolNextTarget(MemPool* mp) {
+	return mp->current == 0 ? 0 : mp->current - 1;
+}
+
+boolean memPoolAdd(MemPool* mp, const char* string) {
 	int added;
 
 	if (string == null)
-		return ERROR_TRUE; // deferred detection of error condition
+		return true; // deferred detection of error condition
 
 	added = strlen(string) + 1;
 
 	if ((mp->current + added) >= mp->size)
-		return ERROR_TRUE; // memory allocation failed
+		return true; // memory allocation failed
 	memcpy(mp->mem + mp->current, string, added);
 	mp->current += added;
-	return ERROR_FALSE; // success
+	return false; // success
 }
 
-enum ErrorState memPoolExtend(MemPool* mp, const char* string) {
+boolean memPoolExtend(MemPool* mp, const char* string) {
 	int target, added;
 
 	if (string == null)
-		return ERROR_TRUE; // deferred detection of error condition
+		return true; // deferred detection of error condition
 
-	target = (mp->current == 0) ? 0 : (mp->current - 1);
+	target = memPoolNextTarget(mp);
 	added = strlen(string) + 1;
 
 	if ((target + added) >= mp->size)
-		return ERROR_TRUE; // memory allocation failed
+		return true; // memory allocation failed
 	memcpy(mp->mem + target, string, added);
 	mp->current = target + added;
-	return ERROR_FALSE; // success
+	return false; // success
 }
 
-enum ErrorState memPoolExtendChar(MemPool* mp, const char c) {
+boolean memPoolExtendChar(MemPool* mp, const char c) {
 	int target;
 
-	target = (mp->current == 0) ? 0 : (mp->current - 1);
+	target = memPoolNextTarget(mp);
 	if ((target + 2) >= mp->size)
-		return ERROR_TRUE; // memory allocation failed
+		return true; // memory allocation failed
 	mp->mem[target++] = c;
 	mp->mem[target++] = '\0';
 	mp->current = target;
-	return ERROR_FALSE; // success
+	return false; // success
 }
 
-enum ErrorState memPoolExtendNumber(MemPool* mp, const unsigned num) {
+boolean memPoolExtendNumber(MemPool* mp, const unsigned num) {
 	return num < 10 ? memPoolExtendChar(mp, digit[num]) : (memPoolExtendNumber(mp, num / 10 ) || memPoolExtendChar(mp, digit[num % 10]));
 }
 
@@ -113,24 +117,24 @@ void stringPoolReset(StringPool* sp) {
 	sp->current = 0;
 }
 
-enum ErrorState stringPoolAdd(StringPool* sp, const char* string) {
+boolean stringPoolAdd(StringPool* sp, const char* string) {
 	int target;
 
 	if (string == null)
-		return ERROR_TRUE; // deferred detection of error condition
+		return true; // deferred detection of error condition
 
 	if (sp->current >= sp->size)
-		return ERROR_TRUE; // no space left in index array
+		return true; // no space left in index array
 
 	target = sp->mp->current;
 	if (memPoolAdd(sp->mp, string))
-		return ERROR_TRUE; // memory allocation failed
+		return true; // memory allocation failed
 
 	sp->strings[sp->current++] = sp->mp->mem + target;
-	return ERROR_FALSE; // success
+	return false; // success
 }
 
-enum ErrorState stringPoolAddVariable(StringPool* sp, const char* varName, const char* value) {
+boolean stringPoolAddVariable(StringPool* sp, const char* varName, const char* value) {
 	return
 		stringPoolAdd(sp, varName) ||
 		memPoolExtend(sp->mp, "=") ||
@@ -138,7 +142,7 @@ enum ErrorState stringPoolAddVariable(StringPool* sp, const char* varName, const
 		;
 }
 
-enum ErrorState stringPoolAddVariableNumber(StringPool* sp, const char* varName, const unsigned value) {
+boolean stringPoolAddVariableNumber(StringPool* sp, const char* varName, const unsigned value) {
 	return
 		stringPoolAdd(sp, varName) ||
 		memPoolExtend(sp->mp, "=") ||
@@ -146,7 +150,7 @@ enum ErrorState stringPoolAddVariableNumber(StringPool* sp, const char* varName,
 		;
 }
 
-enum ErrorState stringPoolAddVariables(StringPool* sp, const StringPool* var, const char* prefix) {
+boolean stringPoolAddVariables(StringPool* sp, const StringPool* var, const char* prefix) {
 	char** strp;
 	char* varName, *value;
 	int i;
@@ -161,9 +165,9 @@ enum ErrorState stringPoolAddVariables(StringPool* sp, const StringPool* var, co
 					memPoolExtend(sp->mp, "=") ||
 					memPoolExtend(sp->mp, startOf(value))
 				)
-				return ERROR_TRUE; // otherwise continue
+				return true; // otherwise continue
 	}
-	return ERROR_FALSE;
+	return false;
 
 }
 

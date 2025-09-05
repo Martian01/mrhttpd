@@ -1,4 +1,4 @@
-# Makefile for mrhttpd v2.7.2
+# Makefile for mrhttpd v2.8.0
 #
 # Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 

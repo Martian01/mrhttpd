@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.7.2
+mrhttpd v2.8.0
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -91,9 +91,9 @@ const char* connectionString[] = {
 	"Connection: close\r"
 };
 
-enum ConnectionState httpRequest(const int socket) {
+ConnectionState httpRequest(const int socket) {
 
-	enum ConnectionState connectionState = CONNECTION_CLOSE;
+	ConnectionState connectionState = CONNECTION_CLOSE;
 
 	char* method; 
 	char* resource;
@@ -176,15 +176,15 @@ enum ConnectionState httpRequest(const int socket) {
 		#if LOG_LEVEL > 0
 		Log(socket, "%15s  400  Missing resource", client);
 		#endif
-		goto _sendError; // no resource
+		goto _sendError; // missing resource
 	}
 
 	resource = strsep(&headerLine, " ");
-	if (headerLine == null) {
+	if (resource[0] != '/' || headerLine == null) {
 		#if LOG_LEVEL > 0
 		Log(socket, "%15s  400  \"%s  %s\"", client, method, resource);
 		#endif
-		goto _sendError; // no protocol
+		goto _sendError; // illegal resource or missing protocol
 	}
 	#ifdef PATH_PREFIX
 	if (strlen(PATH_PREFIX) < 1 || strncmp(resource, PATH_PREFIX, strlen(PATH_PREFIX))) {
@@ -201,8 +201,8 @@ enum ConnectionState httpRequest(const int socket) {
 		}
 	}
 	#endif
-
 	protocol = strsep(&headerLine, " ");
+
 	#if LOG_LEVEL > 1
 	Log(socket, "%15s  OK   \"%s %s %s\"", client, method, resource, protocol);
 	#endif
@@ -457,6 +457,7 @@ enum ConnectionState httpRequest(const int socket) {
 	}
 	#endif
 
+	int resourceOffset = memPoolNextTarget(&fileNamePool);
 	if (memPoolExtend(&fileNamePool, resource)) 
 		goto _sendError500;
 
@@ -483,7 +484,7 @@ enum ConnectionState httpRequest(const int socket) {
 			goto _foundFile;
 		memPoolResetTo(&fileNamePool, savePosition);
 		#endif
-		#if AUTO_INDEX == 1
+		#if AUTO_INDEX > 0
 		// generate auto index if default index was unsuccessful
 		file = tmpfile();
 		if (file == null) {
@@ -492,7 +493,7 @@ enum ConnectionState httpRequest(const int socket) {
 			#endif
 			goto _sendError500;
 		}
-		if (fileWriteDirectory(file, &fileNamePool)) {
+		if (fileWriteDirectory(file, &fileNamePool, fileName + resourceOffset)) {
 			fclose(file);
 			#if LOG_LEVEL > 2
 			Log(socket, "%15s  500  \"AUTODIR failed write\"", client);
@@ -509,7 +510,11 @@ enum ConnectionState httpRequest(const int socket) {
 			#endif
 			goto _sendError500;
 		}
+		#if AUTO_INDEX == 1
 		contentType = "application/json";
+		#else
+		contentType = "application/xml";
+		#endif
 		goto _sendFile200;
 		#else
 		#if LOG_LEVEL > 2

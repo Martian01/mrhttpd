@@ -3,7 +3,7 @@
 # This scripts reads the mrhttpd configuration file mrhttpd.conf
 # and generates the C include config.h
 #
-# mrhttpd v2.7.2
+# mrhttpd v2.8.0
 # Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 . ./mrhttpd.conf
@@ -25,6 +25,7 @@ echo "Path for CGI scripts:  $_CGI_PATH"
 echo "Path for PUT requests: $_PUT_PATH"
 echo "Default index name:    $_DEFAULT_INDEX"
 echo "Auto index option:     $_AUTO_INDEX"
+echo "XSLT header:           $_XSLT_HEADER"
 echo "Pragma:                $_PRAGMA"
 echo "Log level:             $_LOG_LEVEL"
 echo "Log file:              $_LOG_FILE"
@@ -62,7 +63,7 @@ cat > config.h << EOF
 This include has been generated automatically. DO NOT CHANGE MANUALLY.
 Instead, change the master configuration file mrhttpd.conf and run configure.
 
-mrhttpd v2.7.2
+mrhttpd v2.8.0
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 */
@@ -105,6 +106,9 @@ if [ -n "$DEFAULT_INDEX" ]; then
 fi
 if [ -n "$AUTO_INDEX" ]; then
   echo '#define AUTO_INDEX          '$AUTO_INDEX >>config.h
+fi
+if [ -n "$XSLT_HEADER" ]; then
+  echo '#define XSLT_HEADER         "'$XSLT_HEADER'"' >>config.h
 fi
 if [ -n "$PRAGMA" ]; then
   echo '#define PRAGMA              "'$PRAGMA'"' >>config.h

@@ -2,7 +2,7 @@
 #
 # This scripts builds Container images for the purpose of testing
 #
-# mrhttpd v2.7.2
+# mrhttpd v2.8.0
 # Copyright c 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 set -e

@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.7.2
+mrhttpd v2.8.0
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -49,7 +49,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <unistd.h>
 #endif
 
-#if AUTO_INDEX == 1
+#if AUTO_INDEX > 0
 #include <dirent.h>
 #endif
 
@@ -58,14 +58,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #define SERVER_NAME       "mrhttpd"
-#define SERVER_SOFTWARE   "mrhttpd/2.7.2"
+#define SERVER_SOFTWARE   "mrhttpd/2.8.0"
 
 #define PROTOCOL_HTTP_1_0 "HTTP/1.0"
 #define PROTOCOL_HTTP_1_1 "HTTP/1.1"
 
-enum ErrorState { ERROR_FALSE, ERROR_TRUE };
+typedef enum { false, true } boolean;
 
-enum ConnectionState { CONNECTION_KEEPALIVE, CONNECTION_CLOSE };
+typedef enum { CONNECTION_KEEPALIVE, CONNECTION_CLOSE } ConnectionState;
 
 typedef struct {
 	int size;
@@ -98,7 +98,7 @@ void sigChldHandler(const int);
 
 // protocol.c
 
-enum ConnectionState httpRequest(const int);
+ConnectionState httpRequest(const int);
 
 // io.c
 
@@ -114,40 +114,43 @@ ssize_t pipeToFile(const int, const int, const ssize_t);
 
 void memPoolReset(MemPool*);
 void memPoolResetTo(MemPool*, int);
-enum ErrorState memPoolAdd(MemPool*, const char*);
-enum ErrorState memPoolExtend(MemPool*, const char*);
-enum ErrorState memPoolExtendChar(MemPool*, const char);
-enum ErrorState memPoolExtendNumber(MemPool*, const unsigned);
+int memPoolNextTarget(MemPool*);
+boolean memPoolAdd(MemPool*, const char*);
+boolean memPoolExtend(MemPool*, const char*);
+boolean memPoolExtendChar(MemPool*, const char);
+boolean memPoolExtendNumber(MemPool*, const unsigned);
 void memPoolReplace(MemPool*, const char, const char);
 int memPoolLineBreak(const MemPool*, const int);
 void stringPoolReset(StringPool*);
-enum ErrorState stringPoolAdd(StringPool*, const char*);
-enum ErrorState stringPoolAddVariable(StringPool*, const char*, const char*);
-enum ErrorState stringPoolAddVariableNumber(StringPool*, const char*, const unsigned);
-enum ErrorState stringPoolAddVariables(StringPool*, const StringPool*, const char*);
+boolean stringPoolAdd(StringPool*, const char*);
+boolean stringPoolAddVariable(StringPool*, const char*, const char*);
+boolean stringPoolAddVariableNumber(StringPool*, const char*, const unsigned);
+boolean stringPoolAddVariables(StringPool*, const StringPool*, const char*);
 char* stringPoolReadHttpHeader(const StringPool*, const char*);
 char* removePrefix(const char*, char*);
 
 // util.c
 
-extern char digit[];
+extern const char digit[];
 extern FILE* logFile;
 
-int LogOpen(const int);
-void LogClose(const int);
-void Log(const int, const char*, ...);
-const char* mimeType(const char*);
-int hexDigit(const char);
-enum ErrorState urlDecode(char*);
-enum ErrorState fileNameEncode(const char*, char*, size_t);
-enum ErrorState fileWriteChar(FILE*, const char);
-enum ErrorState fileWriteNumber(FILE*, const unsigned);
-enum ErrorState fileWriteString(FILE*, const char*);
-enum ErrorState fileWriteDirectory(FILE* , MemPool*);
-enum ErrorState deleteFileTree(MemPool*);
-int openFileForWriting(MemPool*, char*);
 char* strToLower(char*);
 char* strToUpper(char*);
 char* startOf(char*);
+boolean fileWriteChar(FILE*, const char);
+boolean fileWriteNumber(FILE*, const unsigned);
+boolean fileWriteString(FILE*, const char*);
+boolean fileWriteTimestamp(FILE*, time_t);
+boolean fileWriteTimestampNow(FILE*);
+int hexDigit(const char);
+boolean urlDecode(char*);
+boolean fileNameEncode(const char*, char*, size_t);
+const char* mimeType(const char*);
+int LogOpen(const int);
+void LogClose(const int);
+void Log(const int, const char*, ...);
+int openFileForWriting(MemPool*, char*);
+boolean deleteFileTree(MemPool*);
+boolean fileWriteDirectory(FILE* , MemPool*, char*);
 
 #endif

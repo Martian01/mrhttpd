@@ -2,7 +2,7 @@
 #
 # This scripts does a basic installation of mrhttpd.
 #
-# mrhttpd v2.7.2
+# mrhttpd v2.8.0
 # Copyright c 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 if [[ ! "$(id -u)" = "0" ]] ; then
@@ -33,10 +33,12 @@ if [ -n "$PUBLIC_DIR" ] ; then
   mkdir -p $SERVER_ROOT$PUBLIC_DIR
   cp -u html/index.html $SERVER_ROOT$PUBLIC_DIR/
   cp -u html/mouse.png $SERVER_ROOT$PUBLIC_DIR/
+  cp -u html/html.xslt $SERVER_ROOT$PUBLIC_DIR/
   if [ -n "$SYSTEM_USER" ] ; then
     chown $SYSTEM_USER: $SERVER_ROOT$PUBLIC_DIR
     chown $SYSTEM_USER: $SERVER_ROOT$PUBLIC_DIR/index.html
     chown $SYSTEM_USER: $SERVER_ROOT$PUBLIC_DIR/mouse.png
+    chown $SYSTEM_USER: $SERVER_ROOT$PUBLIC_DIR/html.xslt
   fi
 fi
 

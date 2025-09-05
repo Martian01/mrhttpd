@@ -1,6 +1,6 @@
 /*
 
-mrhttpd v2.7.2
+mrhttpd v2.8.0
 Copyright (c) 2007-2021  Martin Rogge <martin_rogge@users.sourceforge.net>
 
 This program is free software; you can redistribute it and/or
@@ -20,76 +20,146 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mrhttpd.h"
 
-char digit[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+const char digit[] = "0123456789abcdef";
 
-// Log support
+char* strToLower(char* string) {
+	char* cp;
 
-#if (LOG_LEVEL > 0) || (DEBUG > 0)
-
-FILE* logFile;
-
-pthread_mutex_t logFileMutex = PTHREAD_MUTEX_INITIALIZER;
-
-int LogOpen(const int socket) {
-	#ifdef LOG_FILE
-	logFile = fopen(LOG_FILE, "at");
-	#else
-	logFile = stdout;
-	#endif
-	if (logFile != null)
-		Log(socket,
-			"Server started. Port: " SERVER_PORT_STR "."
-			#ifdef SYSTEM_USER
-			" User: " SYSTEM_USER "."
-			#endif
-			#ifdef SERVER_ROOT
-			" Server root: " SERVER_ROOT "."
-			#endif
-			);
-	return logFile != null;
+	if (string != null)
+		for (cp = string; *cp; cp++)
+			*cp = tolower(*cp);
+	return string;
 }
 
-void LogClose(const int socket) {
-	Log(socket,
-		"Server exiting. Port: " SERVER_PORT_STR "."
-		#ifdef SYSTEM_USER
-		" User: " SYSTEM_USER "."
-		#endif
-		#ifdef SERVER_ROOT
-		" Server root: " SERVER_ROOT "."
-		#endif
-		);
-	fclose(logFile);
+char* strToUpper(char* string) {
+	char* cp;
+
+	if (string != null)
+		for (cp = string; *cp; cp++)
+			*cp = toupper(*cp);
+	return string;
 }
 
-void Log(const int socket, const char* format, ...) {
-	va_list ap;
-	struct timeval tv;
-	struct timezone tz;
+char* startOf(char* string) {
+	if (string != null)
+		while (*string != '\0' && !isgraph(*string))
+			++string;
+	return string;
+}
+
+// Formatted file output
+
+#if (LOG_LEVEL > 0) || (DEBUG > 0) || (AUTO_INDEX > 0)
+
+boolean fileWriteChar(FILE* file, const char c) {
+	return fputc(c, file) != c;
+}
+
+boolean fileWriteNumber(FILE* file, const unsigned num) {
+	return num < 10 ? fileWriteChar(file, digit[num]) : (fileWriteNumber(file, num / 10) || fileWriteChar(file, digit[num % 10]));
+}
+
+boolean fileWriteNumberFixed(FILE* file, const unsigned num, const unsigned lenght) {
+	return lenght < 2 ? fileWriteChar(file, num < 10 ? digit[num] : '*') : fileWriteNumberFixed(file, num / 10, lenght - 1) || fileWriteChar(file, digit[num % 10]);
+}
+
+boolean fileWriteString(FILE* file, const char* str) {
+	int len = strlen(str);
+	return fwrite(str, 1, len, file) != len;
+}
+
+boolean fileWriteTimestamp(FILE* file, time_t ts) {
 	struct tm tm;
+	localtime_r(&ts, &tm);
+	return
+		fileWriteNumberFixed(file, tm.tm_year+1900, 4) ||
+		fileWriteChar(file, '-') ||
+		fileWriteNumberFixed(file, tm.tm_mon+1, 2) ||
+		fileWriteChar(file, '-') ||
+		fileWriteNumberFixed(file, tm.tm_mday, 2) ||
+		fileWriteChar(file, ' ') ||
+		fileWriteNumberFixed(file, tm.tm_hour, 2) ||
+		fileWriteChar(file, ':') ||
+		fileWriteNumberFixed(file, tm.tm_min, 2) ||
+		fileWriteChar(file, ':') ||
+		fileWriteNumberFixed(file, tm.tm_sec, 2)
+	;
+}
 
-	pthread_mutex_lock( &logFileMutex );
-
-	gettimeofday(&tv, null);
+boolean fileWriteTimestampNow(FILE* file) {
+	struct timeval tv;
+	struct tm tm;
+	gettimeofday(&tv, NULL);
 	localtime_r(&tv.tv_sec, &tm);
-	fprintf(logFile, "%04d-%02d-%02d %02d:%02d:%02d.%06d  <%08d>  ", 
-		tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 
-		tm.tm_hour, tm.tm_min, tm.tm_sec, (int) tv.tv_usec, socket);
-	
-	va_start(ap, format);
-	vfprintf(logFile, format, ap);
-	va_end(ap);
-
-	fputs("\n", logFile);
-
-	fflush(logFile);
-	
-	pthread_mutex_unlock( &logFileMutex );
-
+	return
+		fileWriteNumberFixed(file, tm.tm_year+1900, 4) ||
+		fileWriteChar(file, '-') ||
+		fileWriteNumberFixed(file, tm.tm_mon+1, 2) ||
+		fileWriteChar(file, '-') ||
+		fileWriteNumberFixed(file, tm.tm_mday, 2) ||
+		fileWriteChar(file, ' ') ||
+		fileWriteNumberFixed(file, tm.tm_hour, 2) ||
+		fileWriteChar(file, ':') ||
+		fileWriteNumberFixed(file, tm.tm_min, 2) ||
+		fileWriteChar(file, ':') ||
+		fileWriteNumberFixed(file, tm.tm_sec, 2) ||
+		fileWriteChar(file, '.') ||
+		fileWriteNumberFixed(file, (unsigned) tv.tv_usec, 6)
+	;
 }
 
 #endif
 
+// Support for hex encoding and decoding
+
+int hexDigit(const char c) {
+	const char* cp;
+
+	const char lc = tolower(c);
+	for (cp = digit; *cp != '\0'; cp++)
+		if (*cp == lc)
+			return cp - digit;
+	return -1;
+}
+
+boolean urlDecode(char* buffer) {
+	if (buffer == null)
+		return false; // allowed
+	char* in, *out;
+	in = out = buffer;
+	for (; (*out = *in) != '\0'; in++, out++) {
+		if (*in == '%') {
+			int lo, hi;
+			hi = hexDigit(in[1]);
+			if (hi >= 0) {
+				lo = hexDigit(in[2]);
+				if (lo >= 0) {
+					*out = (hi<<4) + lo;
+					in += 2;
+				}
+			}
+		}
+	}
+	return false; // success
+}
+
+boolean fileNameEncode(const char* in, char* out, size_t outLength) {
+	if (in == null)
+		return false; // allowed
+	for (; (*out = *in) != '\0'; in++, out ++, outLength--) {
+		if (outLength < 2)
+			return true; // out of space
+		if (*in == '/') {
+			if (outLength < 4)
+				return true; // out of space
+			*out++ = '%';
+			*out++ = '2';
+			*out   = 'F';
+			outLength -= 2;
+		}
+	}
+	return false; // success
+}
 
 // MIME type support
 
@@ -210,63 +280,68 @@ const char* mimeType(const char* fileName) {
 	return mimeDefault;
 }
 
+// Log support
 
-// Support for hex encoding and decoding
+#if (LOG_LEVEL > 0) || (DEBUG > 0)
 
-int hexDigit(const char c) {
-	static const char digits[] = "0123456789abcdef";
-	const char* cp;
+FILE* logFile;
 
-	for (cp = digits; *cp != '\0'; cp++)
-		if (*cp == tolower(c))
-			return cp - digits;
-	return -1;
+pthread_mutex_t logFileMutex = PTHREAD_MUTEX_INITIALIZER;
+
+int LogOpen(const int socket) {
+	#ifdef LOG_FILE
+	logFile = fopen(LOG_FILE, "at");
+	#else
+	logFile = stdout;
+	#endif
+	if (logFile != null)
+		Log(socket,
+			"Server started. Port: " SERVER_PORT_STR "."
+			#ifdef SYSTEM_USER
+			" User: " SYSTEM_USER "."
+			#endif
+			#ifdef SERVER_ROOT
+			" Server root: " SERVER_ROOT "."
+			#endif
+			);
+	return logFile != null;
 }
 
-enum ErrorState urlDecode(char* buffer) {
-	if (buffer == null)
-		return ERROR_FALSE; // allowed
-	char* in, *out;
-	in = out = buffer;
-	for (; (*out = *in) != '\0'; in++, out++) {
-		if (*in == '%') {
-			int lo, hi;
-			hi = hexDigit(in[1]);
-			if (hi >= 0) {
-				lo = hexDigit(in[2]);
-				if (lo >= 0) {
-					*out = (hi<<4) + lo;
-					in += 2;
-				}
-			}
-		}
-	}
-	return ERROR_FALSE; // success
+void LogClose(const int socket) {
+	Log(socket,
+		"Server exiting. Port: " SERVER_PORT_STR "."
+		#ifdef SYSTEM_USER
+		" User: " SYSTEM_USER "."
+		#endif
+		#ifdef SERVER_ROOT
+		" Server root: " SERVER_ROOT "."
+		#endif
+		);
+	fclose(logFile);
 }
 
-enum ErrorState fileNameEncode(const char* in, char* out, size_t outLength) {
-	if (in == null)
-		return ERROR_FALSE; // allowed
-	for (; (*out = *in) != '\0'; in++, out ++, outLength--) {
-		if (outLength < 2)
-			return ERROR_TRUE; // out of space
-		if (*in == '/') {
-			if (outLength < 4)
-				return ERROR_TRUE; // out of space
-			*out++ = '%';
-			*out++ = '2';
-			*out   = 'F';
-			outLength -= 2;
-		}
-	}
-	return ERROR_FALSE; // success
+void Log(const int socket, const char* format, ...) {
+	va_list ap;
+	pthread_mutex_lock(&logFileMutex);
+	fileWriteTimestampNow(logFile);
+	fileWriteString(logFile, "  <");
+	fileWriteNumberFixed(logFile, socket, 8);
+	fileWriteString(logFile, ">  ");
+	va_start(ap, format);
+	vfprintf(logFile, format, ap);
+	va_end(ap);
+	fileWriteChar(logFile, '\n');
+	fflush(logFile);
+	pthread_mutex_unlock(&logFileMutex);
 }
 
-// Miscellaneous
+#endif
 
-#if defined(PUT_PATH) || (AUTO_INDEX == 1)
+// PUT & DELETE support
 
-int isValidDir(char* fileName) {
+#ifdef PUT_PATH
+
+int isTrueDirectory(char* fileName) {
 	return
 		fileName != null
 			&&
@@ -277,10 +352,6 @@ int isValidDir(char* fileName) {
 		(fileName[0] != '.' || fileName[1] != '.' || fileName[2] != '\0')
 			;
 }
-
-#endif
-
-#ifdef PUT_PATH
 
 int openFileForWriting(MemPool* fileNamePool, char* resource) {
 	char* token;
@@ -293,11 +364,11 @@ int openFileForWriting(MemPool* fileNamePool, char* resource) {
 		Log(0, "OFFW: token=\"%s\" resource=\"%s\"", token, resource);
 		#endif
 		if (token == null)
-			return ERROR_TRUE; // bad format
+			return true; // bad format
 		if (*token == '\0')
 			continue; // eat leading slash
 		if (memPoolExtendChar(fileNamePool, '/') || memPoolExtend(fileNamePool, token))
-			return ERROR_TRUE; // out of memory
+			return true; // out of memory
 		if (resource == null || *resource == '\0') {
 			#if DEBUG & 1024
 			Log(0, "OFFW: file=\"%s\"", fileNamePool->mem);
@@ -306,59 +377,56 @@ int openFileForWriting(MemPool* fileNamePool, char* resource) {
 		}
 		if (stat(fileNamePool->mem, &st)) {
 			if (mkdir(fileNamePool->mem, 0755)) // path component does not exist, create directory
-				return ERROR_TRUE; // mkdir failed
+				return true; // mkdir failed
 		} else if (!S_ISDIR(st.st_mode))
-			return ERROR_TRUE; // path component exists but is not a directory
+			return true; // path component exists but is not a directory
 	}
 }
 
-enum ErrorState deleteFileTree(MemPool* fileNamePool) {
+boolean deleteFileTree(MemPool* fileNamePool) {
 	struct stat st;
 	struct dirent* dp;
 	if (stat(fileNamePool->mem, &st))
-		return ERROR_FALSE; // file does not exist
+		return false; // file does not exist
 	if (S_ISDIR(st.st_mode)) { // directory must be empty
 		// normalize directory name
 		if (fileNamePool->current > 1 && fileNamePool->mem[fileNamePool->current - 2] != '/')
 			if (memPoolExtendChar(fileNamePool, '/')) 
-				return ERROR_TRUE;
+				return true;
 		DIR* dir = opendir(fileNamePool->mem);
 		if (dir == null)
-			return ERROR_TRUE;
+			return true;
 		int savePosition = fileNamePool->current;
 		while ((dp = readdir(dir)) != null) {
-			if (isValidDir(dp->d_name)) {
+			if (isTrueDirectory(dp->d_name)) {
 				if (memPoolExtend(fileNamePool, dp->d_name) || deleteFileTree(fileNamePool)) {
 					//memPoolResetTo(fileNamePool, savePosition);
 					closedir(dir);
-					return ERROR_TRUE;
+					return true;
 				}
 				memPoolResetTo(fileNamePool, savePosition);
 			}
 		}
 		closedir(dir);
 	}
-	return remove(fileNamePool->mem) < 0 ? ERROR_TRUE : ERROR_FALSE;
+	return remove(fileNamePool->mem) < 0 ? true : false;
 }
 
 #endif
 
-#if AUTO_INDEX == 1
+#if AUTO_INDEX > 0
 
-enum ErrorState fileWriteChar(FILE* file, const char c) {
-	return fputc(c, file) != c;
+int isNavigationTarget(char* fileName) {
+	return
+		fileName != null
+			&&
+		(fileName[0] != '\0')
+			&&
+		(fileName[0] != '.' || fileName[1] != '\0')
+			;
 }
 
-enum ErrorState fileWriteNumber(FILE* file, const unsigned num) {
-	return num < 10 ? fileWriteChar(file, digit[num]) : (fileWriteNumber(file, num / 10) || fileWriteChar(file, digit[num % 10]));
-}
-
-enum ErrorState fileWriteString(FILE* file, const char* str) {
-	int len = strlen(str);
-	return fwrite(str, 1, len, file) != len;
-}
-
-enum ErrorState fileWriteDirectory(FILE* file, MemPool* fileNamePool) {
+boolean fileWriteDirectory(FILE* file, MemPool* fileNamePool, char* resource) {
 	struct dirent* dp;
 	int found = 0;
 
@@ -369,70 +437,86 @@ enum ErrorState fileWriteDirectory(FILE* file, MemPool* fileNamePool) {
 	int savePosition = fileNamePool->current;
 	DIR* dir = opendir(fileNamePool->mem);
 	if (dir == null)
-		return ERROR_TRUE;
-	if (fileWriteChar(file, '[')) {
+		return true;
+	if (
+		#if AUTO_INDEX == 1
+		fileWriteString(file, "{\"path\":\"") ||
+		fileWriteString(file, resource) ||
+		fileWriteString(file, "\",\"timestamp\":\"") ||
+		fileWriteTimestampNow(file) ||
+		fileWriteString(file, "\",\"server\":\"") ||
+		fileWriteString(file, SERVER_SOFTWARE) ||
+		fileWriteString(file, "\",\"entries\":[")
+		#else
+		fileWriteString(file, "<?xml version=\"1.0\"?>") ||
+		#ifdef XSLT_HEADER
+		fileWriteString(file, XSLT_HEADER) ||
+		#endif
+		fileWriteString(file, "<directory><path>") ||
+		fileWriteString(file, resource) ||
+		fileWriteString(file, "</path><timestamp>") ||
+		fileWriteTimestampNow(file) ||
+		fileWriteString(file, "</timestamp><server>") ||
+		fileWriteString(file, SERVER_SOFTWARE) ||
+		fileWriteString(file, "</server>")
+		#endif
+	) {
 		closedir(dir);
-		return ERROR_TRUE;
+		return true;
 	}
 	while ((dp = readdir(dir)) != null) {
-		if (isValidDir(dp->d_name)) {
+		if (isNavigationTarget(dp->d_name)) {
 			struct stat st;
-			if (memPoolExtend(fileNamePool, dp->d_name) || stat(fileNamePool->mem, &st)) {
-				//memPoolResetTo(fileNamePool, savePosition);
+			if (memPoolExtend(fileNamePool, dp->d_name)) {
 				closedir(dir);
-				return ERROR_TRUE;
+				return true;
+			}
+			if (stat(fileNamePool->mem, &st) || (!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode))) {
+				#if DEBUG & 1
+				Log(0, "FWD: skipping %s", fileNamePool->mem);
+				#endif
+				memPoolResetTo(fileNamePool, savePosition);
+				continue;
 			}
 			memPoolResetTo(fileNamePool, savePosition);
-			unsigned fileSize = st.st_size;
-			const char* fileType = S_ISDIR(st.st_mode) ? "dir" : (S_ISREG(st.st_mode) ? mimeType(dp->d_name) : "unknown");
-			if (found++ > 0 && fileWriteChar(file, ',')) {
-				closedir(dir);
-				return ERROR_TRUE;
-			}
 			if (
-				fileWriteChar(file, '{') ||
-				fileWriteString(file, "\"name\":\"") ||
+				#if AUTO_INDEX == 1
+				(found++ > 0 && fileWriteChar(file, ',')) ||
+				fileWriteString(file, "{\"name\":\"") ||
 				fileWriteString(file, dp->d_name) ||
-				fileWriteString(file, "\",") ||
-				fileWriteString(file, "\"type\":\"") ||
-				fileWriteString(file, fileType) ||
-				fileWriteString(file, "\",") ||
-				fileWriteString(file, "\"size\":") ||
-				fileWriteNumber(file, fileSize) ||
-				fileWriteChar(file, '}')
+				fileWriteString(file, "\",\"type\":\"") ||
+				fileWriteString(file, S_ISDIR(st.st_mode) ? "dir" : mimeType(dp->d_name)) ||
+				fileWriteString(file, "\",\"size\":\"") ||
+				fileWriteNumber(file, (unsigned) st.st_size) ||
+				fileWriteString(file, "\",\"modified\":\"") ||
+				fileWriteTimestamp(file, st.st_mtime) ||
+				fileWriteString(file, "\"}")
+				#else
+				fileWriteString(file, "<entry><name>") ||
+				fileWriteString(file, dp->d_name) ||
+				fileWriteString(file, "</name><type>") ||
+				fileWriteString(file, S_ISDIR(st.st_mode) ? "dir" : mimeType(dp->d_name)) ||
+				fileWriteString(file, "</type><size>") ||
+				fileWriteNumber(file, (unsigned) st.st_size) ||
+				fileWriteString(file, "</size><modified>") ||
+				fileWriteTimestamp(file, st.st_mtime) ||
+				fileWriteString(file, "</modified></entry>")
+				#endif
 			) {
 				closedir(dir);
-				return ERROR_TRUE;
+				return true;
 			}
+
 		}
 	}
 	closedir(dir);
-	return fileWriteChar(file, ']') ? ERROR_TRUE : ERROR_FALSE;
+	return
+		#if AUTO_INDEX == 1
+		fileWriteString(file, "]}")
+		#else
+		fileWriteString(file, "</directory>")
+		#endif
+	;
 }
 
 #endif
-
-char* strToLower(char* string) {
-	char* cp;
-	
-	if (string != null)
-		for (cp = string; *cp; cp++)
-			*cp = tolower(*cp);
-	return string;
-}
-
-char* strToUpper(char* string) {
-	char* cp;
-	
-	if (string != null)
-		for (cp = string; *cp; cp++)
-			*cp = toupper(*cp);
-	return string;
-}
-
-char* startOf(char* string) {
-	if (string != null)
-		while (*string != '\0' && !isgraph(*string))
-			++string;
-	return string;
-}

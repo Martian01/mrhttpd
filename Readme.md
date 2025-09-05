@@ -8,21 +8,17 @@ Mrhttpd was originally developed at [Sourceforge](http://sourceforge.net/project
 
 Before we get into more detail, here is the quick installation guide for the impatient reader:
 
-## Quick Local Installation Guide
+## Quick Local Build & Installation Guide
 
 1. Review `mrhttpd.conf`
 
-2. `./configure`
+2. `make`
 
-3. `make`
-
-4. as root: `make install`
-
-NB: step 2 and 3 are optional
+3. as root: `make install`
 
 ## Quick Docker or Podman Installation Guide
 
-	container/podman run -d -p 8080:8080 -v <absolute directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
+	podman run -d -p 8080:8080 -v <absolute directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
 
 ## Credits
 
@@ -60,12 +56,12 @@ Mrhttpd is configured at compile time and only at compile time. In combination w
 
 In order to configure mrhttpd you load the file `mrhttpd.conf` into an editor. The file distributed with mrhttpd contains explanations of the possible settings as part of the commentary.
 
-In general, the configuration file defines pairs of variables and their values separated by a "=" character. The configuration file is included in bash scripts. This means there must be no spaces around the "=" sign.
+In general, the configuration file defines pairs of variables and their values separated by a "=" character. The configuration file is included in bash scripts. This means there must be no spaces around the "=" sign, and some strings may need to be put in quotes.
 
 Let us now go through the list of variables. Note that many of these variables are optional and will either default to some useful value, or disable the compilation of the associated feature. For details please refer to the sample configuration file.
 
 #### SYSTEM_USER
-defines the user account under which mrhttpd will run. Note: If mrhttpd is configured to listen at a non-privileged port it need not be started as root. However, if it is started as root you should specify a user with restricted access rights here.
+defines the user account under which mrhttpd will run if started as root. Note: If mrhttpd is configured to listen at a non-privileged port it need not be started as root. However, if it is started as root you should specify a user with restricted access rights here.
 
 #### PATH_PREFIX
 is a string expected at the beginning of every valid resource path. Any request without this prefix will be rejected. The prefix will be omitted from the path of the file system resource. This function is sometimes used behind URL-based load balancers.
@@ -98,7 +94,18 @@ defines the URL prefix and the base directory for uploads. A PUT or DELETE reque
 defines the name of the default file in a directory. Typically you use "index.html" or similar. mrhttpd will serve this file if no file name is specified in the URL. For example, if a client requests http://server/path/ mrhttpd will send http://server/path/index.html, if such a file is present at the location "path".
 
 #### AUTO_INDEX
-controls whether the server will generate directory listings in JSON format. A default index will take precedence over auto index generation, if present.
+controls whether the server will generate directory listings. A default index will take precedence over auto index generation, if present.
+
+The meaning of the values is as follows:
+
+ * __AUTO_INDEX=0__ no directory listing is generated
+
+ * __AUTO_INDEX=1__ the directory listing is generated in JSON format
+
+ * __AUTO_INDEX=2__ the directory listing is generated in XML format
+
+#### XSLT_HEADER
+specifies an optional header line in generated directory listings in XML format (AUTO_INDEX=2). This can be used to specify an XSL transformation. A sample XSL transformation is provided as part of this project.
 
 #### PRAGMA
 specifies an optional Pragma parameter that is sent with every HTTP reply. A typical value is "no-cache" if you want to suppress caching by proxy servers and front-ends.
@@ -293,13 +300,13 @@ Container files are provided in the directory `container`. They can be used to b
 
 Pre-built images are available on Docker Hub. For instance, you can start a web server via
 
-	docker/podman run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
+	podman run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
 
 If you want to display your own error pages, you can mount a volume on `/opt/mrhttpd/private`. All local directories must be specified as absolute paths.
 
 If you want to start a file server that allows file uploads, file deletions and JSON directory listings you can use a different image:
 
-	docker/podman run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd-fs
+	podman run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd-fs
 
 The file access can be restricted via environment variables according to the mechanisms described in this document.
 
