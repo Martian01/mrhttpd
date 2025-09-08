@@ -40,6 +40,8 @@ Having started as a Linux-specific project taking advantage of a few Linux-speci
 
 Mrhttpd is now also available as Docker image. At 2.7 MB compressed, 5.6 MB uncompressed, it is probably the smallest and fastest web server available as Docker image. Whenever you need to serve static files as part of your project, why not fire up the mrhttpd Docker image.
 
+![Screenshot](extra/ff.png)
+
 ## Background & History
 
 The reason I started working on mrhttpd was that I needed a web server providing simple services in my local area network at home. In particular, it had to serve static files and run Perl scripts on my internet router which was a self-made and highly specialised Linux system. In fact, I had previously installed Apache web server on the internet router and run it for years. Functionally, I have never had any reason to complain about Apache. The only reason for moving away from Apache is that it was an over-dimensioned solution.
@@ -60,82 +62,82 @@ In general, the configuration file defines pairs of variables and their values s
 
 Let us now go through the list of variables. Note that many of these variables are optional and will either default to some useful value, or disable the compilation of the associated feature. For details please refer to the sample configuration file.
 
-#### SYSTEM_USER
+#### SYSTEM\_USER
 defines the user account under which mrhttpd will run if started as root. Note: If mrhttpd is configured to listen at a non-privileged port it need not be started as root. However, if it is started as root you should specify a user with restricted access rights here.
 
-#### PATH_PREFIX
+#### PATH\_PREFIX
 is a string expected at the beginning of every valid resource path. Any request without this prefix will be rejected. The prefix will be omitted from the path of the file system resource. This function is sometimes used behind URL-based load balancers.
 
-#### SERVER_PORT
+#### SERVER\_PORT
 defines the TCP port the server is listening on. The default is port 8080, but you can use any other port you like. It is quite possible to run multiple server instances at the same time, each one configured for a different port.
 
-#### SERVER_ROOT
-specifies the directory that will become the chroot jail of the server. All other paths with the exception of BIN_DIR are therefore relative to SERVER_ROOT. Be aware that a chroot jail can be very restrictive. In particular all your document files and all binaries and libraries required for running external programs must be replicated in the chroot jail.
+#### SERVER\_ROOT
+specifies the directory that will become the chroot jail of the server. All other paths with the exception of BIN_DIR are therefore relative to SERVER\_ROOT. Be aware that a chroot jail can be very restrictive. In particular all your document files and all binaries and libraries required for running external programs must be replicated in the chroot jail.
 
-#### BIN_DIR
+#### BIN\_DIR
 defines the installation directory for the binary. This is the only directory not affected by SERVER_ROOT since it is not runtime relevant.
 
-#### PRIVATE_DIR
+#### PRIVATE\_DIR
 defines the root directory for internal files. Internal files are documents like the 404 error page.
 
-#### PUBLIC_DIR
+#### PUBLIC\_DIR
 defines the root directory for public files (HTML, CSS, JPG, etc.), i.e. the actual productive content of the web server.
 
-#### CGI_DIR
+#### CGI\_DIR
 defines the root directory for CGI scripts.
 
-#### CGI_PATH
+#### CGI\_PATH
 defines the URL prefix indicating that the resource is a CGI script rather than a static file. Whenever mrhttpd finds this string at the beginning of the resource path, it assumes the resource is an executable CGI script.
 
-#### PUT_PATH
+#### PUT\_PATH
 defines the URL prefix and the base directory for uploads. A PUT or DELETE request is accepted and executed if and only if mrhttpd finds this string at the beginning of the resource path.
 
-#### DEFAULT_INDEX
+#### DEFAULT\_INDEX
 defines the name of the default file in a directory. Typically you use "index.html" or similar. mrhttpd will serve this file if no file name is specified in the URL. For example, if a client requests http://server/path/ mrhttpd will send http://server/path/index.html, if such a file is present at the location "path".
 
-#### AUTO_INDEX
+#### AUTO\_INDEX
 controls whether the server will generate directory listings. A default index will take precedence over auto index generation, if present.
 
 The meaning of the values is as follows:
 
- * __AUTO_INDEX=0__ no directory listing is generated
+ * __AUTO\_INDEX=0__ no directory listing is generated
 
- * __AUTO_INDEX=1__ the directory listing is generated in JSON format
+ * __AUTO\_INDEX=1__ the directory listing is generated in JSON format
 
- * __AUTO_INDEX=2__ the directory listing is generated in XML format
+ * __AUTO\_INDEX=2__ the directory listing is generated in XML format
 
-#### XSLT_HEADER
-specifies an optional header line in generated directory listings in XML format (AUTO_INDEX=2). This can be used to specify an XSL transformation. A sample XSL transformation is provided as part of this project.
+#### XSLT\_HEADER
+specifies an optional header line in generated directory listings in XML format (AUTO\_INDEX=2). This can be used to specify an XSL transformation. A sample XSL transformation is provided as part of this project.
 
 #### PRAGMA
 specifies an optional Pragma parameter that is sent with every HTTP reply. A typical value is "no-cache" if you want to suppress caching by proxy servers and front-ends.
 
-#### LOG_LEVEL
+#### LOG\_LEVEL
 determines the amount of information saved in the log file.
 
 Note: the higher the level the more code is generated. If you specify a log level 0, all routines related to log generation, file handling etc. are omitted from the compilation process.
 
 The meaning of the values is as follows:
 
- * __LOG_LEVEL=0__ no log entries are created.
+ * __LOG\_LEVEL=0__ no log entries are created.
 
- * __LOG_LEVEL=1__ additionally, all rejected requests are logged
+ * __LOG\_LEVEL=1__ additionally, all rejected requests are logged
 
- * __LOG_LEVEL=2__ additionally, all accepted requests are logged
+ * __LOG\_LEVEL=2__ additionally, all accepted requests are logged
 
- * __LOG_LEVEL=3__ additionally, every unsuccessful reply is logged
+ * __LOG\_LEVEL=3__ additionally, every unsuccessful reply is logged
 
- * __LOG_LEVEL=4__ additionally, every successful reply is logged
+ * __LOG\_LEVEL=4__ additionally, every successful reply is logged
 
-#### LOG_FILE
+#### LOG\_FILE
 defines the file name used for saving the logs. If omitted, all logs are printed to stdout.
 
-#### EXT_FILE_CMD
+#### EXT\_FILE\_CMD
 specifies a binary that is used to determine the mime type of a resource. A typical binary would be the file(1) command. Note that the external file command is called only after evaluating the file suffix according to a list compiled into mrhttpd. The obvious reason is the performance impact of an external call.
 
 The external file command is always called with parameters "-b --mime-type". If you do not want that, you need to specify a shell script stripping the first two parameters.
 
-Note: the external file command and all its dependencies are relative to SERVER_ROOT. If you use SERVER_ROOT you will probably need to copy the following files into the chroot jail (your mileage may vary):
+Note: the external file command and all its dependencies are relative to SERVER\_ROOT. If you use SERVER\_ROOT you will probably need to copy the following files into the chroot jail (your mileage may vary):
 
  * usr/bin/file
  * usr/lib/libmagic.so.1
@@ -144,39 +146,40 @@ Note: the external file command and all its dependencies are relative to SERVER_
  * lib/libc.so.6
  * etc/file/magic/*
 
-#### USE_SENDFILE
+#### USE\_SENDFILE
 chooses which implementation is used for sending files. The choice is between a routine in user space and the kernel function sendfile(). Whilst the latter promises better performance and lower CPU load, you might want to choose the user space routine for trouble shooting. Also, on operating systems other than Linux you need to select the user space routine.
 
 #### DETACH
 controls whether the server sends itself into the background when it starts up. When running the server natively you will almost always want to detach. Inside a Docker container you will not want to detach it.
 
-#### HTTP_HEADER_LENGTH
+#### HTTP\_HEADER\_LENGTH
 defines the size of the internal HTTP header buffer.
 
 Note: the server will try to internalize as many headers as possible from the HTTP request. Hence the setting is largely irrelevant.
 
-#### AUTH_HEADER
+#### AUTH\_HEADER
 defines the authorisation header required for certain requests. Typically used for Basic Auth. The server will send a WWW-Authenticate header in case the Authorisation header is missing for a protected resource.
 
-#### AUTH_METHODS
+#### AUTH\_METHODS
 defines for which HTTP methods an authorisation header is required. The variable is an integer representing a bit string with the bits meaning:
+
  * 0: GET
  * 1: HEAD
  * 2: PUT
  * 3: DELETE
 
-#### QUERY_HACK
-is an option for the processing of query strings. If this variable exists the query string of a resource will be interpreted as part of the file name, provided the resource path begins with the string in QUERY_HACK.
+#### QUERY\_HACK
+is an option for the processing of query strings. If this variable exists the query string of a resource will be interpreted as part of the file name, provided the resource path begins with the string in QUERY\_HACK.
 
-Example: assuming a request for a resource `index.html?sorted=yes`. Normally the server will read the file `index.html`. The query string `sorted=yes` will be omitted. If you specify QUERY_HACK=/, the processing will be different and the server will read the file `index.html?sorted=yes`.
+Example: assuming a request for a resource `index.html?sorted=yes`. Normally the server will read the file `index.html`. The query string `sorted=yes` will be omitted. If you specify QUERY\_HACK=/, the processing will be different and the server will read the file `index.html?sorted=yes`.
 
-The option is named a hack because it is a violation of the HTTP specification. It is, however, useful when you have mirrored dynamic resources using wget, and wget has created file names containing the query part.
+The option is named a hack because it is a violation of the HTTP specification. It is, however, useful when you have mirrored dynamic resources using `wget`, and `wget` has created file names containing the query part.
 
-One note about query strings in general: for static file requests they are always ignored (unless QUERY_HACK is specified). They are passed to CGI scripts via the usual mechanism.
+One note about query strings in general: for static file requests they are always ignored (unless QUERY\_HACK is specified). They are passed to CGI scripts via the usual mechanism (the environment).
 
 ### Environment Variables
 
-The variables **AUTH_HEADER** and **AUTH_METHODS** can be injected via the environment. If present, they will override the compile-time variables. This is the only way to provide standard images for docker and kubernetes based scenarios.
+The variables **AUTH\_HEADER** and **AUTH\_METHODS** can be injected via the environment. If present, they will override the compile-time variables. This is the only way to provide standard images for docker and kubernetes based scenarios.
 
 ## Build
 
@@ -294,21 +297,17 @@ The other stunning fact proven by these figures is the significant impact of the
 
 It is noticeable that a fully threaded design like mrhttpd benefits particularly well from the CK patch, whereas the event-driven design of Lighttpd often seems to perform slightly better under the vanilla kernel.
 
-## Docker or Podman
+## Ready-made Containers
 
 Container files are provided in the directory `container`. They can be used to build container images with docker or podman.
 
 Pre-built images are available on Docker Hub. For instance, you can start a web server via
 
-	podman run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
+	podman run -d -p 8080:8080 -v <absolute directory>:/opt/mrhttpd/public dockahdockah/mrhttpd
 
-If you want to display your own error pages, you can mount a volume on `/opt/mrhttpd/private`. All local directories must be specified as absolute paths.
+If you want to display your own error pages, you can mount another volume on `/opt/mrhttpd/private`. All local directories must be specified as absolute paths.
 
-If you want to start a file server that allows file uploads, file deletions and JSON directory listings you can use a different image:
-
-	podman run -d -p 8080:8080 -v <document directory>:/opt/mrhttpd/public dockahdockah/mrhttpd-fs
-
-The file access can be restricted via environment variables according to the mechanisms described in this document.
+If you want to start a server that allows file uploads and file deletions (for instance to be used as a simple browser-based collaboration server) you can use the image `dockahdockah/mrhttpd-fs`. The file access can be restricted via environment variables according to the mechanisms described in this document.
 
 ## References
 

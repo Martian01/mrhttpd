@@ -7,16 +7,31 @@ echo
 echo "Server Url: $SERVER_URL"
 echo
 
+if [[ "$SERVER_URL" == "" ]] ; then
+	echo "The environment variable SERVER_URL is not set. Aborted."
+	echo
+	exit 1
+fi
+curl -s -f -o /dev/null $SERVER_URL/
+rc=$?
+if [[ "$rc" != "0" ]] ; then
+	echo "The server seems not to respond. Aborted."
+	echo
+	exit 2
+fi
+echo "The server seems to respond. Continuing."
+echo
+
 if [[ "$1" != "" ]] ; then
 	curl -s -f -o /dev/null $SERVER_URL$1
 	rc=$?
 	if [[ "$rc" = "0" ]] ; then
 		curl -s -f -X DELETE $SERVER_URL$1
 		rc=$?
-		echo "Deleted $SERVER_URL$1 with return code $rc"
+		echo "Target $SERVER_URL$1 deleted (return code $rc)"
 		echo
 	else
-		echo "The target resource does not exist on the server (return code $rc)"
+		echo "Target $SERVER_URL$1 not found (return code $rc)"
 		echo
 	fi
 else
@@ -24,5 +39,5 @@ else
 	echo
 	echo "Example: $0 /fs/files/demo"
 	echo
-	exit 1
+	exit 3
 fi
