@@ -10,4 +10,7 @@ default:
 	( cd src ; make ; strip mrhttpd )
 
 clean:
-	( cd src ; make clean)
+	( cd src ; make clean )
+
+install: default
+	sh install
